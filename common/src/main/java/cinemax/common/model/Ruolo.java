@@ -1,4 +1,9 @@
 package cinemax.common.model;
 
-public enum Ruolo {
+import java.io.Serializable;
+
+public enum Ruolo implements Serializable {
+    CLIENTE,
+    PROIEZIONISTA,
+    BIGLIETTAIO
 }
