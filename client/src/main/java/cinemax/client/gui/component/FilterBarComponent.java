@@ -1,5 +1,10 @@
 package cinemax.client.gui.component;
 
+import javafx.fxml.FXML;
+import javafx.event.ActionEvent;
+import cinemax.client.model.FiltriRicerca;
+import java.util.function.Consumer;
+
 public class FilterBarComponent {
 
     /* Gestirà barra_filtri.fmxml
@@ -16,7 +21,7 @@ public class FilterBarComponent {
 
     */
 
-    // private void onCercaCliccato(ActionEvent event){};
+    @FXML private void onCercaCliccato(ActionEvent event){};
 
     public void impostaVisibilitaFiltri(boolean mostraDate, boolean mostraPrezzo){};
 
