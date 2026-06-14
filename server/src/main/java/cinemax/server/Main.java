@@ -1,6 +1,5 @@
 package cinemax.server;
 
-import cinemax.common.CineMaxService;
 import cinemax.server.controller.CineMaxServiceImpl;
 
 import java.rmi.registry.LocateRegistry;

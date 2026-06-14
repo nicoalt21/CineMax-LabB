@@ -1,7 +1,5 @@
 package cinemax.server.controller;
 
-import cinemax.common.CineMaxService;
-
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
