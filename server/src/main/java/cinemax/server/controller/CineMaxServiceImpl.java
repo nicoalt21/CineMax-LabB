@@ -1,4 +1,4 @@
-package cinemax.server.controller;
+/*package cinemax.server.controller;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
@@ -26,4 +26,4 @@ public class CineMaxServiceImpl extends UnicastRemoteObject implements CineMaxSe
         System.out.println("Server: Richiesta ricevuta per il posto" + numeroPosto);
         return true;
     }
-}
+}*/

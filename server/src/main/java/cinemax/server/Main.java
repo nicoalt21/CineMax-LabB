@@ -1,4 +1,4 @@
-package cinemax.server;
+/*package cinemax.server;
 
 import cinemax.server.controller.CineMaxServiceImpl;
 
@@ -22,4 +22,4 @@ public class Main {
             e.printStackTrace();
         }
     }
-}
+} */
