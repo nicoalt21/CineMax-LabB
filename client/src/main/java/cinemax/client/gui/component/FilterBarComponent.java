@@ -2,7 +2,7 @@ package cinemax.client.gui.component;
 
 import javafx.fxml.FXML;
 import javafx.event.ActionEvent;
-import cinemax.client.model.FiltriRicerca;
+
 import java.util.function.Consumer;
 
 public class FilterBarComponent {
@@ -25,7 +25,7 @@ public class FilterBarComponent {
 
     public void impostaVisibilitaFiltri(boolean mostraDate, boolean mostraPrezzo){};
 
-    public void setListenerRicerca(Consumer<FiltriRicerca> listener){};
+   // public void setListenerRicerca(Consumer<FiltriRicerca> listener){};
 
     public void svuotaFiltri(){};
 
