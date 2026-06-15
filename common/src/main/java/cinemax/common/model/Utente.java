@@ -3,6 +3,9 @@ package cinemax.common.model;
 import java.io.Serializable;
 import java.time.LocalDate;
 
+/**
+ * Rappresenta un utente del sistema CineMax.
+ */
 public class Utente implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -11,11 +14,26 @@ public class Utente implements Serializable {
     private String cognome;
     private String username;
     private String passwordCifrata;
-    private LocalDate dataNascita; // nullable
+    private LocalDate dataNascita;
     private String luogoDomicilio;
     private Ruolo ruolo;
 
-    // 1. Costruttore completo: Utile per quando si leggersano i dati del database
+    /**
+     * Costruttore vuoto richiesto per la deserializzazione RMI.
+     */
+    public Utente() {}
+
+    /**
+     * Costruttore completo.
+     *
+     * @param nome nome dell'utente
+     * @param cognome cognome dell'utente
+     * @param username username univoco
+     * @param passwordCifrata password cifrata con hash
+     * @param dataNascita data di nascita, può essere null
+     * @param luogoDomicilio luogo di domicilio
+     * @param ruolo ruolo dell'utente nel sistema
+     */
     public Utente(String nome, String cognome, String username, String passwordCifrata, LocalDate dataNascita, String luogoDomicilio, Ruolo ruolo) {
         this.nome = nome;
         this.cognome = cognome;
@@ -26,38 +44,24 @@ public class Utente implements Serializable {
         this.ruolo = ruolo;
     }
 
-    // 2. Costuttore leggero: Comando per creare un utente al volo nei test di login
-    public Utente(String nome, String cognome) {
-        this.nome = nome;
-        this.cognome = cognome;
-    }
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
 
-    // 3. GETTER: Permettono alle altre parti del programma (e al client) di leggere i dati
-    public String getNome() {
-        return nome;
-    }
+    public String getCognome() { return cognome; }
+    public void setCognome(String cognome) { this.cognome = cognome; }
 
-    public String getCognome() {
-        return cognome;
-    }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 
-    public String getUsername() {
-        return username;
-    }
+    public String getPasswordCifrata() { return passwordCifrata; }
+    public void setPasswordCifrata(String passwordCifrata) { this.passwordCifrata = passwordCifrata; }
 
-    public String getPasswordCifrata() {
-        return passwordCifrata;
-    }
+    public LocalDate getDataNascita() { return dataNascita; }
+    public void setDataNascita(LocalDate dataNascita) { this.dataNascita = dataNascita; }
 
-    public LocalDate getDataNascita() {
-        return dataNascita;
-    }
+    public String getLuogoDomicilio() { return luogoDomicilio; }
+    public void setLuogoDomicilio(String luogoDomicilio) { this.luogoDomicilio = luogoDomicilio; }
 
-    public String getLuogoDomicilio() {
-        return luogoDomicilio;
-    }
-
-    public Ruolo getRuolo() {
-        return ruolo;
-    }
+    public Ruolo getRuolo() { return ruolo; }
+    public void setRuolo(Ruolo ruolo) { this.ruolo = ruolo; }
 }
