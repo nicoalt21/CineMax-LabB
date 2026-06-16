@@ -14,7 +14,7 @@
         <module>common</module>
         <module>client</module>
         <module>server</module>
-        <module>dbcreator</module>
+        <module>DBcreator</module>
     </modules>
 
     <properties>
