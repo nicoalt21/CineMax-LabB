@@ -1,0 +1,90 @@
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    src: url('../fonts/PlusJakartaSans-Regular.ttf');
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    font-weight: bold;
+    src: url('../fonts/PlusJakartaSans-Bold.ttf');
+}
+
+@font-face {
+    font-family: 'DM Serif DisplayTitoli';
+    src: url('../fonts/DMSerifDisplay-Regular.ttf');
+}
+
+/* Variabili Globali */
+.root {
+    -fx-bg-color: #141414; /* Onyx */
+    -fx-surface-color: #2b2b2b; /* Graphite */
+    -fx-primary-color: #FFE84F; /* Banana Cream */
+    -fx-primary-hover: #F6E81D; /* Bright Lemon */
+    -fx-text-main: #FFFFFF; /* White */
+    -fx-text-muted: #B3B3B3; /* Silver */
+
+    -fx-font-sans: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    -fx-font-serif: "Serif Titoli", serif;
+    -fx-font-family: -fx-font-sans;
+}
+
+.sfondo-principale {
+    -fx-background-color: -fx-bg-color;
+}
+
+.titolo-principale {
+    -fx-font-family: -fx-font-serif;
+    -fx-text-fill: -fx-text-muted;
+    -fx-font-size: 36px;
+}
+
+.testo-normale {
+    -fx-text-fill: -fx-text-main;
+    -fx-font-size: 14px;
+}
+
+.testo-secondario {
+    -fx-text-fill: -fx-text-muted;
+    -fx-font-size: 12px;
+}
+
+.bottone-primario {
+    -fx-background-color: -fx-primary-color;
+    -fx-text-fill: #141414;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5px;
+    -fx-padding: 10px 20px;
+    -fx-cursor: hand;
+}
+
+.bottone-primario:hover {
+    -fx-background-color: -fx-primary-hover;
+}
+
+.bottone-secondario {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-main;
+    -fx-border-color: -fx-text-main;
+    -fx-border-radius: 5px;
+    -fx-padding: 10px 20px;
+    -fx-cursor: hand;
+}
+
+.bottone-secondario:hover {
+    -fx-background-color: -fx-surface-color;
+}
+
+.campo-testo {
+    -fx-background-color: -fx-surface-color;
+    -fx-text-fill: -fx-text-main;
+    -fx-prompt-text-fill: -fx-text-muted;
+    -fx-background-radius: 5px;
+    -fx-padding: 10px;
+    -fx-border-color: #404040;
+    -fx-border-radius: 5px;
+}
+
+.campo-testo:focused {
+    -fx-border-color: -fx-primary-color;
+}

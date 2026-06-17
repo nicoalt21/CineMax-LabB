@@ -6,7 +6,7 @@ import javafx.fxml.FXML;
 public class StartController {
 
     @FXML
-    public void onLoginClicclato(ActionEvent e){};
+    public void onLoginCliccato(ActionEvent e){};
 
     @FXML public void onRegistratiCliccato(ActionEvent e){};
 

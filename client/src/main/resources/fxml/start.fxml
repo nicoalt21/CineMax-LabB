@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<?import javafx.geometry.Insets?>
+
+<VBox alignment="CENTER" spacing="30.0" styleClass="sfondo-principale"
+      xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="cinemax.client.controller.auth.StartController">
+
+    <padding>
+        <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
+    </padding>
+
+    <Label text="CineMax" styleClass="titolo-principale" />
+    <Label text="Prenota il tuo posto in prima fila." styleClass="testo-secondario" />
+
+    <VBox alignment="CENTER" spacing="15.0">
+        <Button text="Accedi" maxWidth="200" styleClass="bottone-primario" onAction="#onLoginCliccato"/>
+        <Button text="Registrati" maxWidth="200" styleClass="bottone-secondario" onAction="#onRegistratiCliccato"/>
+    </VBox>
+
+    <HBox alignment="CENTER" spacing="10.0">
+        <Label text="oppure" styleClass="testo-secondario" />
+    </HBox>
+
+    <Button text="Continua come Guest" styleClass="bottone-secondario" style="-fx-border-color: transparent; -fx-text-fill: -fx-primary-color;" onAction="#onContinuaComeGuestCliccato"/>
+
+</VBox>
