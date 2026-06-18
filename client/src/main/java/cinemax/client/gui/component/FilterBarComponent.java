@@ -16,7 +16,6 @@ public class FilterBarComponent {
     Button searchBtn
 
     Nessun Input di default previsto, però per sicurezza ci metterò un SetDefaultFilters
-
     Output: setOnSearch passa al controller padre un pacchetto di dati (classe predefinita SearchRequest?)
 
     */

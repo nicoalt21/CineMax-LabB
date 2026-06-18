@@ -11,5 +11,4 @@ public class LoginController {
 
     @FXML public void onIndietroCliccato(ActionEvent e){};
 
-
 }
