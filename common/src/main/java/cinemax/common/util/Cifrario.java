@@ -1,4 +1,4 @@
-package cinemax.server.persistence;
+package cinemax.common.util;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -6,6 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public class Cifrario {
+
+    private Cifrario() {}
 
     public static String cifraPassword(String password) {
         try {

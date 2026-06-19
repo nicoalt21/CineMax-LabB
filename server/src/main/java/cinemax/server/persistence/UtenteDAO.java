@@ -14,8 +14,6 @@ public class UtenteDAO {
             return false;
         }
 
-        String passwordCifrata = Cifrario.cifraPassword(utente.getPasswordCifrata());
-
         String sql = "INSERT INTO utenti (username, nome, cognome, password_hash, data_nascita, domicilio, ruolo) " +
                 "VALUES (?, ?, ?, ?, ?, ?, 'CLIENTE')";
 
@@ -25,7 +23,7 @@ public class UtenteDAO {
             ps.setString(1, utente.getUsername());
             ps.setString(2, utente.getNome());
             ps.setString(3, utente.getCognome());
-            ps.setString(4, passwordCifrata);
+            ps.setString(4, utente.getPasswordCifrata());
 
             if (utente.getDataNascita() != null) {
                 ps.setDate(5, Date.valueOf(utente.getDataNascita()));
@@ -39,10 +37,7 @@ public class UtenteDAO {
         }
     }
 
-    public Utente autenticaUtente(String username, String password) throws SQLException {
-
-        // Cifra la password prima di confrontarla con quella nel DB
-        String passwordCifrata = Cifrario.cifraPassword(password);
+    public Utente autenticaUtente(String username, String passwordHash) throws SQLException {
 
         String sql = "SELECT * FROM utenti WHERE username = ? AND password_hash = ?";
 
@@ -50,7 +45,7 @@ public class UtenteDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, username);
-            ps.setString(2, passwordCifrata);
+            ps.setString(2, passwordHash);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -90,5 +85,4 @@ public class UtenteDAO {
                 Ruolo.valueOf(rs.getString("ruolo"))
         );
     }
-
 }
