@@ -4,9 +4,11 @@ import cinemax.client.gui.navigation.GestoreScene;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 // Schermata di login, costruita interamente in codice Java (come StartController). Riceve il GestoreScene nel costruttore per poter navigare.
@@ -55,7 +57,21 @@ public class LoginController {
         btnIndietro.getStyleClass().add("bottone-secondario");
         btnIndietro.setOnAction(e -> onIndietroCliccato());
 
-        contenitore.getChildren().addAll(titolo, campoUsername, campoPassword, btnConferma, btnIndietro);
+        // Riga "Oppure Registrati": testo statico + link cliccabile verso la registrazione.
+        HBox rigaRegistrati = new HBox(4);
+        rigaRegistrati.setAlignment(Pos.CENTER);
+        Label etichettaOppure = new Label("Oppure");
+        etichettaOppure.getStyleClass().add("testo-secondario");
+        Hyperlink linkRegistrati = new Hyperlink("Registrati");
+        linkRegistrati.getStyleClass().add("link-testuale");
+        linkRegistrati.setOnAction(e -> onRegistratiCliccato());
+        rigaRegistrati.getChildren().addAll(etichettaOppure, linkRegistrati);
+
+        contenitore.getChildren().addAll(
+                titolo, campoUsername, campoPassword,
+                btnConferma, btnIndietro,
+                rigaRegistrati
+        );
         return contenitore;
     }
 
@@ -67,6 +83,10 @@ public class LoginController {
         String Username = campoUsername.getText();
         String password = campoPassword.getText();
         System.out.println("TODO login: " + Username + " / " + password);
+    }
+
+    public void onRegistratiCliccato() {
+        gestoreScene.vaiARegistrazione();
     }
 
     public void onIndietroCliccato() {

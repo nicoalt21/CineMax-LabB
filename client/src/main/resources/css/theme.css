@@ -6,6 +6,7 @@
     -fx-primary-hover: #F6E81D; /* Bright Lemon */
     -fx-text-main: #FFFFFF; /* White */
     -fx-text-muted: #B3B3B3; /* Silver */
+    -fx-error-color: #FF5A5A; /* Soft Red */
 
     -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
 }
@@ -76,6 +77,21 @@
     -fx-border-color: -fx-primary-color;
 }
 
+.campo-testo.date-picker .text-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-main;
+    -fx-prompt-text-fill: -fx-text-muted;
+    -fx-padding: 0;
+}
+
+.campo-testo.date-picker .arrow-button {
+    -fx-background-color: transparent;
+}
+
+.campo-testo.date-picker .arrow-button .arrow {
+    -fx-background-color: -fx-text-muted;
+}
+
 .bottone-bianco {
     -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
     -fx-background-color: -fx-text-main;
@@ -93,4 +109,59 @@
 
 .bloccato-guest {
     -fx-opacity: 0.35;
+}
+
+.etichetta-campo {
+    -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    -fx-text-fill: -fx-text-muted;
+    -fx-font-size: 12px;
+}
+
+.etichetta-obbligatorio {
+    -fx-text-fill: -fx-error-color;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.campo-in-errore {
+    -fx-border-color: -fx-error-color;
+    -fx-border-radius: 5px;
+}
+
+.campo-in-errore:focused {
+    -fx-border-color: -fx-error-color;
+}
+
+.campo-errore {
+    -fx-text-fill: -fx-error-color;
+    -fx-font-size: 11px;
+}
+
+.errore-generale {
+    -fx-text-fill: -fx-error-color;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+/* Link testuale cliccabile (es. "Oppure Registrati"). */
+.link-testuale {
+    -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    -fx-text-fill: -fx-primary-color;
+    -fx-font-size: 12px;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.link-testuale:hover {
+    -fx-text-fill: -fx-primary-hover;
+    -fx-underline: true;
+}
+
+.link-testuale:visited {
+    -fx-text-fill: -fx-primary-color;
+}
+
+.link-testuale:focused {
+    -fx-border-color: transparent;
 }
