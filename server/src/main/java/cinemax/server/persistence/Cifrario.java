@@ -1,4 +1,4 @@
-package cinemax.server.controller;
+package cinemax.server.persistence;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

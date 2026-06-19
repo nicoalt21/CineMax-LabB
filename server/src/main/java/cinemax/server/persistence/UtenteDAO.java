@@ -2,7 +2,6 @@ package cinemax.server.persistence;
 
 import cinemax.common.model.Ruolo;
 import cinemax.common.model.Utente;
-import cinemax.server.controller.Cifrario;
 
 import java.sql.*;
 import java.time.LocalDate;

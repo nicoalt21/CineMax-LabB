@@ -4,9 +4,11 @@ import cinemax.common.model.Proiezione;
 
 public class ProiezioneDAO {
 
-    public cercaProiezione(){
+   /* public cercaProiezione(){
 
     }
+
+
 
     public boolean aggiungiProiezione(){
 
@@ -27,4 +29,7 @@ public class ProiezioneDAO {
     private boolean siSovrappongono(){
 
     }
+
+
+    */
 }
