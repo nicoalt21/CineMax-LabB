@@ -1,9 +1,6 @@
 package cinemax.client.gui.navigation;
 
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
@@ -14,11 +11,6 @@ import java.net.URL;
 
 public class ClientApplication extends Application {
 
-    /**
-     * Carica i font custom PRIMA che venga costruita la UI.
-     * Una volta registrati qui, sono richiamabili dal CSS tramite
-     * -fx-font-family con il loro nome reale (es. "Plus Jakarta Sans").
-     */
     @Override
     public void init() {
         caricaFont(
@@ -49,23 +41,6 @@ public class ClientApplication extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            // Carichiamo l'fxml della pagina iniziale
-            URL fxmlLocation = getClass().getResource("/fxml/start.fxml");
-            if (fxmlLocation == null) {
-                throw new IllegalStateException("Impossibile trovare il file start.fxml");
-            }
-            FXMLLoader loader = new FXMLLoader(fxmlLocation);
-            Parent root = loader.load();
-
-            Scene scene = new Scene(root, 800, 600);
-
-            URL cssLocation = getClass().getResource("/css/theme.css");
-            if (cssLocation != null) {
-                scene.getStylesheets().add(cssLocation.toExternalForm());
-            } else {
-                System.err.println("Attenzione: theme.css non trovato!");
-            }
-
             // Icona della finestra (titlebar + taskbar di Windows).
             URL iconLocation = getClass().getResource("/images/CineMaxIcon.png");
             if (iconLocation != null) {
@@ -75,12 +50,17 @@ public class ClientApplication extends Application {
             }
 
             primaryStage.setTitle("CineMax - Prenotazione Cinema");
-            primaryStage.setScene(scene);
             primaryStage.setMinWidth(600);
             primaryStage.setMinHeight(500);
+
+            // La navigazione (Scene, CSS, schermata iniziale) è gestita interamente
+            // da GestioreScene: la UI è costruita in codice Java, niente FXML.
+            GestoreScene gestoreScene = new GestoreScene();
+            gestoreScene.inizializza(primaryStage);
+
             primaryStage.show();
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Errore critico durante l'avvio dell'interfaccia grafica.");
         }

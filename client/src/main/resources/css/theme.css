@@ -7,7 +7,6 @@
     -fx-text-main: #FFFFFF; /* White */
     -fx-text-muted: #B3B3B3; /* Silver */
 
-    /* Font di default dell'intera app */
     -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
@@ -75,4 +74,23 @@
 
 .campo-testo:focused {
     -fx-border-color: -fx-primary-color;
+}
+
+.bottone-bianco {
+    -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    -fx-background-color: -fx-text-main;
+    -fx-background-radius: 5px;
+    -fx-padding: 10px 20px;
+    -fx-cursor: hand;
+    -fx-text-fill: #141414;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.bottone-bianco:hover {
+    -fx-background-color: -fx-text-muted;
+}
+
+.bloccato-guest {
+    -fx-opacity: 0.35;
 }
