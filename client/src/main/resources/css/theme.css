@@ -50,7 +50,7 @@
 
 .bottone-secondario {
     -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
-    -fx-background-color: -fx-text-color;
+    -fx-background-color: transparent;
     -fx-text-fill: -fx-text-main;
     -fx-border-color: -fx-text-main;
     -fx-border-radius: 5px;

@@ -8,10 +8,12 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
@@ -104,12 +106,24 @@ public class RegistrazioneController {
         Region spaziatore = new Region();
         spaziatore.setMinHeight(20);
 
+        // Riga "Hai gia' un account? Accedi": rimanda alla schermata di login,
+        // speculare al link "Oppure Registrati" presente nel LoginController.
+        HBox rigaAccedi = new HBox(4);
+        rigaAccedi.setAlignment(Pos.CENTER);
+        Label etichettaAccount = new Label("Hai gia' un account?");
+        etichettaAccount.getStyleClass().add("testo-secondario");
+        Hyperlink linkAccedi = new Hyperlink("Accedi");
+        linkAccedi.getStyleClass().add("link-testuale");
+        linkAccedi.setOnAction(e -> onAccediCliccato());
+        rigaAccedi.getChildren().addAll(etichettaAccount, linkAccedi);
+
         contenitore.getChildren().addAll(
                 titolo,
                 costruisciGriglia(),
                 spaziatore,
                 labelErroreGenerale,
-                btnConferma, btnAnnulla
+                btnConferma, btnAnnulla,
+                rigaAccedi
         );
         return contenitore;
     }
@@ -218,6 +232,11 @@ public class RegistrazioneController {
 
     public void onAnnullaCliccato() {
         gestoreScene.vaiAStart();
+    }
+
+    // Naviga alla schermata di login (link "Hai già un account? Accedi").
+    public void onAccediCliccato() {
+        gestoreScene.vaiALogin();
     }
 
     // Helper privati
