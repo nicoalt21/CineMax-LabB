@@ -34,7 +34,7 @@ public class BaseLayoutController {
     // Bottone Login/Logout (cambia testo e stile in base allo stato)
     private final Button btnAuth = new Button();
 
-    // Nodi che il guest vede ma non può usare (es. "Prenota")
+    // Nodi che il guest vede ma non può usare (es. "Prenota", "Le mie prenotazioni")
     private final List<Node> nodiRiservati = new ArrayList<>();
 
     // Stato
@@ -82,15 +82,24 @@ public class BaseLayoutController {
         return contenitorePrincipale;
     }
 
+    // Vero se il layout sta operando in modalità Guest (utente non autenticato).
+    public boolean isGuest() {
+        return isGuest;
+    }
+
+    public Utente getUtenteLoggato() {
+        return utenteLoggato;
+    }
+
     // Inizializza il contesto. utente == null significa Guest.
     public void inizializzaContesto(Utente utente) {
         this.utenteLoggato = utente;
         this.isGuest = (utente == null);
 
         if (isGuest) {
-            labelBenvenuto.setText("Modalità Ospite");
+            labelBenvenuto.setText("Modalità Guest");
         } else {
-            labelBenvenuto.setText("Bentornato"); // TODO: + nome utente, es. utente.getNome()
+            labelBenvenuto.setText("Bentornato, " + utente.getNome());
         }
 
         aggiornaStatoAuth();
@@ -103,7 +112,7 @@ public class BaseLayoutController {
     }
 
     // Registra un nodo come "riservato": il guest lo vede attenuato e non lo può cliccare.
-    // Da chiamare quando costruisci la dashboard, es: layout.registraNodoRiservato(card.getBottonePrenota());
+    // Da chiamare quando costruisci la dashboard, es: layout.registraNodoRiservato(card.getBottonePrincipale());
     public void registraNodoRiservato(Node n) {
         nodiRiservati.add(n);
         applicaStatoNodo(n);
@@ -139,8 +148,35 @@ public class BaseLayoutController {
     private void generaMenuLaterale() {
         menuLaterale.getChildren().clear();
         // TODO: switch sul ruolo (Cliente / Proiezionista / Bigliettaio).
-        // Per il guest si mostra il menu del Cliente, con le voci riservate
-        // registrate via registraNodoRiservato(...).
+        // Per ora si mostra il menu del Cliente, che è anche quello del Guest:
+        // le voci riservate vengono registrate via registraNodoRiservato(...).
+
+        Button voceCerca = costruisciVoceMenu("Cerca proiezioni");
+        // La ricerca proiezioni è sempre disponibile (anche al Guest), nessun blocco.
+        voceCerca.setOnAction(e -> {
+            // Già nella dashboard di ricerca: per ora nessuna navigazione aggiuntiva.
+            // TODO: se in futuro ci saranno più viste, qui si torna a quella di ricerca.
+        });
+
+        Button vocePrenotazioni = costruisciVoceMenu("Le mie prenotazioni");
+        vocePrenotazioni.setOnAction(e -> {
+            // NAVIGAZIONE (solo clienti registrati)
+            // TODO: caricare la dashboard MiePrenotazioni nell'area centrale.
+            //   impostaContenutoCentrale(miePrenotazioni.getRoot());
+        });
+        // "Le mie prenotazioni" è riservata: il Guest la vede attenuata e non cliccabile.
+        registraNodoRiservato(vocePrenotazioni);
+
+        menuLaterale.getChildren().addAll(voceCerca, vocePrenotazioni);
+    }
+
+    // Costruisce una voce di menu laterale con lo stile a tutta larghezza.
+    private Button costruisciVoceMenu(String testo) {
+        Button b = new Button(testo);
+        b.getStyleClass().add("voce-menu");
+        b.setMaxWidth(Double.MAX_VALUE);
+        b.setAlignment(Pos.CENTER_LEFT);
+        return b;
     }
 
     // Gestisce sia Login (guest) che Logout (client).

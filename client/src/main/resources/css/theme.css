@@ -50,7 +50,7 @@
 
 .bottone-secondario {
     -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
-    -fx-background-color: transparent;
+    -fx-background-color: -fx-text-color;
     -fx-text-fill: -fx-text-main;
     -fx-border-color: -fx-text-main;
     -fx-border-radius: 5px;
@@ -164,4 +164,123 @@
 
 .link-testuale:focused {
     -fx-border-color: transparent;
+}
+
+/* ============================================================
+   Componenti dashboard (card proiezione, barra filtri, menu)
+   ============================================================ */
+
+/* Scheda di una proiezione nell'elenco risultati. */
+.card-proiezione {
+    -fx-background-color: -fx-surface-color;
+    -fx-background-radius: 8px;
+    -fx-border-color: #404040;
+    -fx-border-radius: 8px;
+    -fx-cursor: hand;
+}
+
+.card-proiezione:hover {
+    -fx-border-color: -fx-primary-color;
+}
+
+.card-titolo {
+    -fx-font-family: "DM Serif Display", serif;
+    -fx-text-fill: -fx-text-main;
+    -fx-font-size: 20px;
+}
+
+/* Etichetta "posti liberi" quando la proiezione e' esaurita. */
+.testo-esaurito {
+    -fx-text-fill: -fx-error-color;
+    -fx-font-weight: bold;
+}
+
+/* Barra di ricerca/filtri sopra l'elenco. */
+.barra-filtri {
+    -fx-background-color: -fx-surface-color;
+    -fx-background-radius: 8px;
+    -fx-border-color: #404040;
+    -fx-border-radius: 8px;
+}
+
+/* Box di ricerca (lente + campo titolo) nella riga principale. */
+.box-ricerca {
+    -fx-background-color: -fx-bg-color;
+    -fx-background-radius: 5px;
+    -fx-border-color: #404040;
+    -fx-border-radius: 5px;
+    -fx-padding: 0 12px;
+    -fx-min-height: 40px;
+}
+
+.box-ricerca:focus-within {
+    -fx-border-color: -fx-primary-color;
+}
+
+.icona-ricerca {
+    -fx-text-fill: -fx-text-muted;
+    -fx-font-size: 14px;
+}
+
+/* Campo titolo "nudo" dentro il box di ricerca: nessun bordo/sfondo propri. */
+.campo-ricerca-interno {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-main;
+    -fx-prompt-text-fill: -fx-text-muted;
+    -fx-border-color: transparent;
+    -fx-padding: 8px 0;
+    -fx-font-size: 14px;
+}
+
+.campo-ricerca-interno:focused {
+    -fx-border-color: transparent;
+    -fx-background-color: transparent;
+}
+
+/* Pannello dei filtri avanzati (sotto la riga principale). */
+.pannello-filtri {
+    -fx-background-color: transparent;
+}
+
+/* Bottone "Filtri" quando il pannello e' aperto. */
+.bottone-attivo {
+    -fx-background-color: -fx-surface-color;
+    -fx-border-color: -fx-primary-color;
+}
+
+/* Contatore filtri attivi sul bottone "Filtri". */
+.badge-filtri {
+    -fx-background-color: -fx-primary-color;
+    -fx-text-fill: #141414;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10px;
+    -fx-padding: 1px 7px;
+}
+
+/* Voce del menu laterale (a tutta larghezza, allineata a sinistra). */
+.voce-menu {
+    -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-main;
+    -fx-background-radius: 5px;
+    -fx-padding: 10px 14px;
+    -fx-cursor: hand;
+    -fx-font-size: 14px;
+}
+
+.voce-menu:hover {
+    -fx-background-color: -fx-bg-color;
+    -fx-text-fill: -fx-primary-color;
+}
+
+/* Area scrollabile dei risultati: trasparente, senza bordo di default. */
+.area-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.area-scroll > .viewport {
+    -fx-background-color: transparent;
 }

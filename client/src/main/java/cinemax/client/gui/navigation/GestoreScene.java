@@ -3,6 +3,7 @@ package cinemax.client.gui.navigation;
 import cinemax.client.controller.auth.StartController;
 import cinemax.client.controller.auth.LoginController;
 import cinemax.client.controller.auth.RegistrazioneController;
+import cinemax.client.controller.cliente.DashboardClienteController;
 import cinemax.client.controller.shared.BaseLayoutController;
 import cinemax.common.model.Utente;
 import javafx.scene.Parent;
@@ -15,7 +16,7 @@ import java.net.URL;
   Gestore centrale della navigazione. Possiede lo Stage principale e si occupa di sostituire la radice della Scene per cambiare schermata
   riusa sempre lo stesso foglio di stile.
 
-  Tutta la UI è costruita in codice Java: il gestore istanzia i controller (StartController, BaseLayoutController, ...) e inietta sé stesso
+  Tutta la UI è costruita in codice Java: il gestore istanzia i controller (StartController, BaseLayoutController, ...) e inietta se stesso
   dove serve per permettere la navigazione.
  */
 public class GestoreScene {
@@ -52,10 +53,26 @@ public class GestoreScene {
       del Client, ma con le parti riservate attenuate e non cliccabili.
     */
     public void caricaLayoutEDashboard(Utente utenteLoggato) {
+        caricaLayoutEDashboard(utenteLoggato, null);
+    }
+
+    /*
+      Variante che accetta un titolo iniziale: usata quando il Guest entra dal menu
+      iniziale indicando il nome (anche parziale) di un film. La dashboard precompila la
+      ricerca e mostra subito le proiezioni di quel film nei tre mesi successivi.
+    */
+    public void caricaLayoutEDashboard(Utente utenteLoggato, String titoloInizialeGuest) {
         BaseLayoutController layout = new BaseLayoutController(this);
         layout.inizializzaContesto(utenteLoggato); // null = Guest
-        // TODO: costruire e iniettare la dashboard del ruolo nell'area centrale:
-        //   layout.impostaContenutoCentrale(dashboard.getRoot());
+
+        // Per ora tutti (Cliente e Guest) usano la dashboard del Cliente.
+        // TODO: switch sul ruolo per Proiezionista / Bigliettaio.
+        DashboardClienteController dashboard =
+                new DashboardClienteController(this, layout, titoloInizialeGuest);
+        dashboard.setUtente(utenteLoggato);
+        dashboard.inizializza();
+
+        layout.impostaContenutoCentrale(dashboard.getRoot());
         impostaRadice(layout.getRoot());
     }
 

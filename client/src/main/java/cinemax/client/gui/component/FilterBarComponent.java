@@ -1,31 +1,329 @@
 package cinemax.client.gui.component;
 
-import javafx.fxml.FXML;
-import javafx.event.ActionEvent;
+import cinemax.common.model.CriteriRicercaProiezione;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 
 import java.util.function.Consumer;
 
-public class FilterBarComponent {
+/*
+ Barra di ricerca riutilizzabile, costruita interamente in codice Java (niente FXML).
 
-    /* Gestirà barra_filtri.fmxml
+ Design compatto: a riposo mostra solo il campo di ricerca per titolo, un bottone
+ "Filtri" e il bottone "Cerca". I filtri avanzati (genere, intervallo di date,
+ intervallo di prezzo) sono raccolti in un pannello che si apre/chiude cliccando
+ "Filtri", così la barra resta pulita ma mantiene tutte le funzionalità.
 
-    Avrà come binding UI:
-    TextField serchField
-    DatePicker fromDate
-    Datepicker toDate
-    Button searchBtn
+ Un piccolo contatore sul bottone "Filtri" indica quanti filtri avanzati sono attivi,
+ utile quando il pannello è chiuso.
 
-    Nessun Input di default previsto, però per sicurezza ci metterò un SetDefaultFilters
-    Output: setOnSearch passa al controller padre un pacchetto di dati (classe predefinita SearchRequest?)
+ Alla pressione di "Cerca" i criteri vengono impacchettati in un oggetto
+ CriteriRicercaProiezione (modulo condiviso cinemax.common.model) e passati al
+ controller padre tramite il listener registrato con setListenerRicerca(...).
 
-    */
+ Campi disponibili (vedi specifiche, cercaProiezione()):
+   - titolo (anche parziale): CriteriRicercaProiezione.titolo
+   - genere: CriteriRicercaProiezione.genere
+   - intervallo di date (da / a): CriteriRicercaProiezione.dataInizio / dataFine
+   - intervallo di prezzo (min/max): CriteriRicercaProiezione.costoMin / costoMax
+ */
+public class FilterBarComponent extends VBox {
 
-    @FXML private void onCercaCliccato(ActionEvent event){};
+    private final TextField campoTitolo = new TextField();
+    private final TextField campoGenere = new TextField();
+    private final DatePicker dataDa = new DatePicker();
+    private final DatePicker dataA = new DatePicker();
+    private final TextField prezzoMin = new TextField();
+    private final TextField prezzoMax = new TextField();
 
-    public void impostaVisibilitaFiltri(boolean mostraDate, boolean mostraPrezzo){};
+    private final Button btnCerca = new Button("Cerca");
+    private final Button btnFiltri = new Button("Filtri");
+    private final Label badgeFiltri = new Label();
 
-   // public void setListenerRicerca(Consumer<FiltriRicerca> listener){};
+    // Pannello dei filtri avanzati (genere, date, prezzo), mostrato/nascosto al toggle
+    private final GridPane pannelloAvanzati;
 
-    public void svuotaFiltri(){};
+    // Colonne del pannello avanzati che possono essere nascoste in blocco
+    private VBox colonnaDate1;
+    private VBox colonnaDate2;
+    private VBox colonnaPrezzo;
 
+    // Etichetta di errore per input non validi (es. prezzo non numerico)
+    private final Label labelErrore = new Label();
+
+    // Listener verso il controller padre: riceve i criteri quando l'utente cerca
+    private Consumer<CriteriRicercaProiezione> listenerRicerca;
+
+    private boolean pannelloAperto = false;
+
+    public FilterBarComponent() {
+        super(0);
+        getStyleClass().add("barra-filtri");
+
+        pannelloAvanzati = costruisciPannelloAvanzati();
+        pannelloAvanzati.setVisible(false);
+        pannelloAvanzati.setManaged(false);
+
+        HBox rigaPrincipale = costruisciRigaPrincipale();
+
+        labelErrore.getStyleClass().add("campo-errore");
+        labelErrore.setPadding(new Insets(6, 0, 0, 4));
+        labelErrore.setManaged(false);
+        labelErrore.setVisible(false);
+
+        getChildren().addAll(rigaPrincipale, pannelloAvanzati, labelErrore);
+
+        aggiornaBadgeFiltri();
+    }
+
+    // Riga sempre visibile: campo di ricerca + toggle Filtri + bottone Cerca.
+    private HBox costruisciRigaPrincipale() {
+        HBox riga = new HBox(10);
+        riga.setAlignment(Pos.CENTER_LEFT);
+        riga.setPadding(new Insets(12));
+
+        // Box di ricerca con "icona" lente (glifo) + campo titolo, a tutta larghezza.
+        HBox boxRicerca = new HBox(8);
+        boxRicerca.setAlignment(Pos.CENTER_LEFT);
+        boxRicerca.getStyleClass().add("box-ricerca");
+        HBox.setHgrow(boxRicerca, Priority.ALWAYS);
+
+        Label lente = new Label("🔍");
+        lente.getStyleClass().add("icona-ricerca");
+
+        campoTitolo.setPromptText("Cerca un film per titolo...");
+        campoTitolo.getStyleClass().add("campo-ricerca-interno");
+        HBox.setHgrow(campoTitolo, Priority.ALWAYS);
+        // Invio nel campo titolo = avvio ricerca, comodità d'uso.
+        campoTitolo.setOnAction(e -> onCercaCliccato());
+
+        boxRicerca.getChildren().addAll(lente, campoTitolo);
+
+        badgeFiltri.getStyleClass().add("badge-filtri");
+        badgeFiltri.setManaged(false);
+        badgeFiltri.setVisible(false);
+        btnFiltri.setText("Filtri");
+        btnFiltri.setGraphic(badgeFiltri);
+        btnFiltri.setContentDisplay(ContentDisplay.RIGHT);
+        btnFiltri.setGraphicTextGap(6);
+        btnFiltri.getStyleClass().add("bottone-secondario");
+        btnFiltri.setOnAction(e -> togglePannello());
+
+        btnCerca.getStyleClass().add("bottone-primario");
+        btnCerca.setOnAction(e -> onCercaCliccato());
+
+        riga.getChildren().addAll(boxRicerca, btnFiltri, btnCerca);
+        return riga;
+    }
+
+    // Pannello dei filtri avanzati: genere, date (da/a), prezzo (min/max).
+    private GridPane costruisciPannelloAvanzati() {
+        GridPane griglia = new GridPane();
+        griglia.getStyleClass().add("pannello-filtri");
+        griglia.setHgap(12);
+        griglia.setVgap(10);
+        griglia.setPadding(new Insets(0, 12, 12, 12));
+
+        VBox colonnaGenere = costruisciColonna("Genere", campoGenere);
+        campoGenere.setPromptText("Tutti");
+
+        dataDa.setPromptText("gg/mm/aaaa");
+        dataA.setPromptText("gg/mm/aaaa");
+        colonnaDate1 = costruisciColonna("Dal", dataDa);
+        colonnaDate2 = costruisciColonna("Al", dataA);
+
+        // Colonna prezzo: due campi min/max affiancati sotto un'unica etichetta.
+        prezzoMin.setPromptText("min");
+        prezzoMin.getStyleClass().add("campo-testo");
+        prezzoMax.setPromptText("max");
+        prezzoMax.getStyleClass().add("campo-testo");
+        HBox rigaPrezzo = new HBox(6);
+        rigaPrezzo.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(prezzoMin, Priority.ALWAYS);
+        HBox.setHgrow(prezzoMax, Priority.ALWAYS);
+        prezzoMin.setMaxWidth(Double.MAX_VALUE);
+        prezzoMax.setMaxWidth(Double.MAX_VALUE);
+        Label trattino = new Label("-");
+        trattino.getStyleClass().add("etichetta-campo");
+        rigaPrezzo.getChildren().addAll(prezzoMin, trattino, prezzoMax);
+        colonnaPrezzo = costruisciColonna("Prezzo (€)", rigaPrezzo);
+
+        griglia.add(colonnaGenere, 0, 0);
+        griglia.add(colonnaDate1, 1, 0);
+        griglia.add(colonnaDate2, 2, 0);
+        griglia.add(colonnaPrezzo, 3, 0);
+
+        // Quattro colonne di pari larghezza, responsive.
+        for (int i = 0; i < 4; i++) {
+            ColumnConstraints cc = new ColumnConstraints();
+            cc.setPercentWidth(25);
+            cc.setHgrow(Priority.ALWAYS);
+            griglia.getColumnConstraints().add(cc);
+        }
+
+        return griglia;
+    }
+
+    // Colonna "etichetta sopra, controllo sotto", a tutta larghezza.
+    private VBox costruisciColonna(String etichetta, javafx.scene.Node controllo) {
+        VBox colonna = new VBox(4);
+        Label label = new Label(etichetta);
+        label.getStyleClass().add("etichetta-campo");
+
+        if (controllo instanceof javafx.scene.control.Control) {
+            ((javafx.scene.control.Control) controllo).setMaxWidth(Double.MAX_VALUE);
+            if (!controllo.getStyleClass().contains("campo-testo")) {
+                controllo.getStyleClass().add("campo-testo");
+            }
+        }
+        colonna.getChildren().addAll(label, controllo);
+        return colonna;
+    }
+
+    // Apre/chiude il pannello dei filtri avanzati.
+    private void togglePannello() {
+        pannelloAperto = !pannelloAperto;
+        pannelloAvanzati.setVisible(pannelloAperto);
+        pannelloAvanzati.setManaged(pannelloAperto);
+        if (pannelloAperto) {
+            btnFiltri.getStyleClass().add("bottone-attivo");
+        } else {
+            btnFiltri.getStyleClass().remove("bottone-attivo");
+        }
+    }
+
+    // Mostra o nasconde i blocchi opzionali (date e prezzo) all'interno del pannello.
+    // Se nessuno dei due è visibile, il bottone "Filtri" viene nascosto del tutto:
+    // in quel caso restano solo titolo + genere, comunque accessibili.
+    public void impostaVisibilitaFiltri(boolean mostraDate, boolean mostraPrezzo) {
+        colonnaDate1.setVisible(mostraDate);
+        colonnaDate1.setManaged(mostraDate);
+        colonnaDate2.setVisible(mostraDate);
+        colonnaDate2.setManaged(mostraDate);
+        colonnaPrezzo.setVisible(mostraPrezzo);
+        colonnaPrezzo.setManaged(mostraPrezzo);
+    }
+
+    // Registra il listener che riceverà i criteri quando l'utente preme Cerca.
+    public void setListenerRicerca(Consumer<CriteriRicercaProiezione> listener) {
+        this.listenerRicerca = listener;
+    }
+
+    // Costruisce i CriteriRicercaProiezione dai campi e li passa al listener del padre.
+    private void onCercaCliccato() {
+        pulisciErrore();
+
+        Double min = leggiPrezzo(prezzoMin.getText());
+        Double max = leggiPrezzo(prezzoMax.getText());
+
+        // Validazione minima locale: i prezzi, se presenti, devono essere numeri.
+        if (prezzoNonValido(prezzoMin.getText(), min) || prezzoNonValido(prezzoMax.getText(), max)) {
+            mostraErrore("Il prezzo deve essere un numero (es. 9.50).");
+            if (!pannelloAperto) {
+                togglePannello(); // apro i filtri così l'utente vede dov'è l'errore
+            }
+            return;
+        }
+
+        CriteriRicercaProiezione criteri = new CriteriRicercaProiezione(
+                vuotoComeNull(campoTitolo.getText()),
+                vuotoComeNull(campoGenere.getText()),
+                dataDa.getValue(),   // dataInizio, può essere null
+                dataA.getValue(),    // dataFine, può essere null
+                min,                 // costoMin, può essere null
+                max                  // costoMax, può essere null
+        );
+
+        aggiornaBadgeFiltri();
+
+        if (listenerRicerca != null) {
+            listenerRicerca.accept(criteri);
+        }
+    }
+
+    // Reimposta tutti i campi allo stato iniziale (vuoto).
+    public void svuotaFiltri() {
+        campoTitolo.clear();
+        campoGenere.clear();
+        dataDa.setValue(null);
+        dataA.setValue(null);
+        prezzoMin.clear();
+        prezzoMax.clear();
+        pulisciErrore();
+        aggiornaBadgeFiltri();
+    }
+
+    // Imposta dei valori predefiniti nei filtri (es. titolo passato dall'utente Guest
+    // nel menu iniziale). Passare null a un parametro lo lascia invariato/vuoto.
+    public void impostaFiltriPredefiniti(String titolo, String genere) {
+        if (titolo != null) {
+            campoTitolo.setText(titolo);
+        }
+        if (genere != null) {
+            campoGenere.setText(genere);
+        }
+        aggiornaBadgeFiltri();
+    }
+
+    // Conta i filtri avanzati attivi (genere, date, prezzo) e aggiorna il badge.
+    private void aggiornaBadgeFiltri() {
+        int attivi = 0;
+        if (vuotoComeNull(campoGenere.getText()) != null) attivi++;
+        if (dataDa.getValue() != null) attivi++;
+        if (dataA.getValue() != null) attivi++;
+        if (vuotoComeNull(prezzoMin.getText()) != null) attivi++;
+        if (vuotoComeNull(prezzoMax.getText()) != null) attivi++;
+
+        boolean ce = attivi > 0;
+        badgeFiltri.setText(String.valueOf(attivi));
+        badgeFiltri.setManaged(ce);
+        badgeFiltri.setVisible(ce);
+    }
+
+    // Helper privati
+
+    private static String vuotoComeNull(String s) {
+        return (s == null || s.trim().isEmpty()) ? null : s.trim();
+    }
+
+    // Converte la stringa in Double; null se vuota o non numerica.
+    private static Double leggiPrezzo(String s) {
+        if (s == null || s.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(s.trim().replace(',', '.'));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    // Vero se l'utente ha scritto qualcosa ma non è un numero valido.
+    private static boolean prezzoNonValido(String testo, Double valore) {
+        boolean testoPresente = testo != null && !testo.trim().isEmpty();
+        return testoPresente && valore == null;
+    }
+
+    private void mostraErrore(String messaggio) {
+        labelErrore.setText(messaggio);
+        labelErrore.setManaged(true);
+        labelErrore.setVisible(true);
+    }
+
+    private void pulisciErrore() {
+        labelErrore.setText("");
+        labelErrore.setManaged(false);
+        labelErrore.setVisible(false);
+    }
 }
