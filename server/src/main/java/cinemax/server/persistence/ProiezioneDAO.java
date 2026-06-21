@@ -188,6 +188,48 @@ public class ProiezioneDAO {
         }
     }
 
+    public List<Proiezione> getProiezioniStoriche() throws SQLException {
+
+        String sql = "SELECT p.data_ora, p.prezzo_biglietto, " +
+                        "f.id_film, f.titolo, f.genere, f.regista, f.anno, f.durata_minuti, f.eta_minima, " +
+                        "(" + CAPIENZA_SALA + " - COALESCE((SELECT SUM(pr.numero_posti) FROM prenotazioni pr " +
+                        "WHERE pr.data_ora = p.data_ora), 0)) AS posti_liberi " +
+                        "FROM proiezioni p JOIN film f ON p.id_film = f.id_film " +
+                        "WHERE p.data_ora < NOW() " +
+                        "ORDER BY p.data_ora DESC";
+
+        List<Proiezione> risultati = new ArrayList<>();
+
+        try (Connection conn = DBconnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) risultati.add(creaProiezione(rs));
+        }
+        return risultati;
+    }
+
+    public List<Proiezione> getProiezioniFuture() throws SQLException {
+
+        String sql = "SELECT p.data_ora, p.prezzo_biglietto, " +
+                        "f.id_film, f.titolo, f.genere, f.regista, f.anno, f.durata_minuti, f.eta_minima, " +
+                        "(" + CAPIENZA_SALA + " - COALESCE((SELECT SUM(pr.numero_posti) FROM prenotazioni pr " +
+                        "WHERE pr.data_ora = p.data_ora), 0)) AS posti_liberi " +
+                        "FROM proiezioni p JOIN film f ON p.id_film = f.id_film " +
+                        "WHERE p.data_ora > NOW() " +
+                        "ORDER BY p.data_ora";
+
+        List<Proiezione> risultati = new ArrayList<>();
+
+        try (Connection conn = DBconnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) risultati.add(creaProiezione(rs));
+        }
+        return risultati;
+    }
+
     private int inserisciORecuperaFilm(Film film) throws SQLException {
 
         String selectSql = "SELECT id_film FROM film WHERE titolo = ? AND regista = ? AND anno = ?";
