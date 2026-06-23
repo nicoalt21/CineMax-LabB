@@ -1,0 +1,494 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage [italian]{babel}
+\usepackage{graphicx} % Required for inserting images
+
+\title{Manuale Tecnico}
+\author{Niccolò Jacopo Alt, Alessia Gerti, Mateo Soldo, Davide Vignati}
+\date{20/07/2026}
+
+\newpage
+\begin{document}
+\newpage
+
+\maketitle
+\newpage
+\tableofcontents
+\newpage
+\maketitle
+
+\section{Introduzione}
+Il manuale tecnico nasce con l'obiettivo di descrivere nel dettaglio le scelte progetturali, architetturali e tecnologiche adottate nello sviluppo del sietema CineMax. 
+La documentazione si focalizza sull'estensione dell'applicazione verso un'architettura \textit{Client} e \textit{Server} multhithread e sull'interrogazione di una base di dati relazionale per la persistenza delle informazioni. 
+All'interno della documentazione viene fornita una panoramica esaustiva sugli stumenti, sulle librerie esterne e sui driver di conessione (JDBC) utilizzati. Vengono illustrati i principi che hanno aiutato la realizzazione del software con riferimento ai design pattern orientati agli oggetti, alle strutture dati impegante e alla gestione degli accessi concorrenti alle risorse condivise.\\
+Un ampio spazio è dedicato alla formalizzazione dei modelli grafici, sia a livello logico-funzionale del codice tramite diagrammi UML(\textit{Unifed Modeling Language}), sia a livello della persistenza dei dati atraverso la modellazione concettuale ER (\textit{Entity-Relationship}) e la derivazione dello schema relazionale normalizzato. 
+Dunque, in fine il manuale tecnico serve per chiarire la logica architetturale e la transazione alla base del progetto, facilitandone così la comprensione, la manutentibilità e l'eventuale ripresa futura ed evidenziando le potenzialità di un aproccio modulare e scalabile che permette all'applicazione di crescere ed evolversi senza perdere coerenza interna.
+
+
+\section{Installazione e configurazione dell'ambiente}
+Per poter configurare l'ambiente di sviluppo, compilare ed eseguire il sistema \textbf{CineMax} è necessario installare e configurare i componenti software descritti di seguito. Le procedure fanno riferimento a un'installazione centralizzata su una singola macchina di sviluppo (host locale), sulla quale risiederanno sia l'ambiente di runtime che la base di dati.
+
+\subsection{Installazione dei componenti software}
+
+\subsubsection{Java Development Kit (JDK 21 LTS)}
+Il sistema richiede la presenza della JDK per l'esecuzione e lo sviluppo dell'applicazione. Si raccomanda l'utilizzo di una versione LTS (\textbf{Long-Term-Support}) stabile, nello specifico \textbf{JDK 21}, per garantire la piena compatibilità con i driver JDBC di PostgreSQL e il corretto supporto alle funzionalità del linguaggio.
+
+Per procedere, è necessario collegarsi al sito ufficiale Oracle nella sezione ``Java Downloads'' e scaricare il pacchetto idoneo all'architettura del proprio sistema operativo (Windows, Linux e macOS).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{oracle.png} 
+    \caption{Sito ufficiale Oracle per il download di Java 21}
+    \label{fig:oracle}
+\end{figure}
+
+\textbf{Nota per gli utenti macOS:} La versione ``ARM64 DMG Installer'' è dedicata ai Mac con processori Apple Silicon (M1, M2, M3, ecc.), mentre la versione ``x64 DMG Installer'' è destinata ai Mac dotati di processore Intel.\\
+Dopo aver completato l'installazione guidata, è necessario configurare le variabili d'ambiente per consentire l'esecuzione corretta dei comandi Java da terminale.
+
+\subsubsection{Windows} 
+Accedere al pannello ``Variabili d'ambiente'' dal menu Start. Creare una nuova variabile di sistema denominata \texttt{JAVA\_HOME} che punti alla cartella radice della JDK installata (es. \path{C:\Program Files\Java\jdk-21}). Successivamente, selezionare la variabile \texttt{Path}, cliccare su ``Modifica'' e aggiungere il percorso della cartella bin: \path{%JAVA_HOME%\bin}.
+
+\subsubsection{Linux}
+Eseguire l'estrazione dell'archivio compresso nella directory di sistema:
+\begin{verbatim}
+sudo mkdir -p /usr/local/java
+sudo tar -xzvf jdk-21_linux-x64_bin.tar.gz -C /usr/local/java/
+\end{verbatim}
+Modificare il file di configurazione globale del sistema tramite il comando \texttt{sudo nano /etc/profile} aggiungendo le seguenti righe:
+\begin{verbatim}
+export JAVA_HOME=/usr/local/java/jdk-21
+export PATH=$PATH:$JAVA_HOME/bin
+\end{verbatim}
+Applicare le modifiche digitando: \texttt{source /etc/profile}.
+
+\subsubsection{macOS}
+Modificare il file di configurazione della shell zsh tramite \texttt{nano ~/.zshrc} inserendo:
+\begin{verbatim}
+export JAVA_HOME="/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home"
+export PATH="$PATH:$JAVA_HOME/bin"
+\end{verbatim}
+
+Salvare premendo \texttt{Ctrl+O}, confermare con \texttt{Invio} e uscire con \texttt{Ctrl+X}. Rendere effettive le modifiche con il comando: \texttt{source ~/.zshrc}.\\
+Verificare la corretta installazione digitando da terminale: \texttt{java -version}.
+
+\subsection{Apache Maven}
+Il progetto utilizza Apache Maven per la gestione del ciclo di vita del software, l'automazione della build e la risoluzione delle dipendenze (come il driver JDBC) definite nel file \texttt{pom.xml}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{maven.png}
+    \caption{Sito ufficiale Apache Maven}
+    \label{fig:maven}
+\end{figure}
+
+\subsubsection{Windows}
+Scaricare il ``Binary zip archive'' dal sito ufficiale. Estrarre il contenuto in una cartella permanente (es. \path{C:\apache-maven-3.9.6}). Nel pannello delle variabili d'ambiente, modificare la variabile di sistema \texttt{Path} inserendo il percorso della cartella bin di Maven (es. \path{C:\apache-maven-3.9.6\bin}).
+
+\subsubsection{Linux}
+Sulle distribuzioni basate su Debian/Ubuntu, l'aggiunta avviene tramite il gestore di pacchetti Apt:
+\begin{verbatim}
+sudo apt update
+sudo apt install maven
+\end{verbatim}
+
+\subsubsection{macOS}
+L'installazione consigliata avviene tramite l'ausilio del package manager Homebrew:
+\begin{verbatim}
+brew install maven
+\end{verbatim}
+Verificare l'installazione digitando da terminale: \texttt{mvn -version}.
+
+\subsection{PostgreSQL RDBMS}
+Per garantire la persistenza a lungo termine dei dati relativi a utenti, film, proiezioni e prenotazioni del cinema, il sistema CineMax richiede un'istanza attiva del database relazionale PostgreSQL (versione 15 o successiva). Nell'architettura ad host singolo, il server del database viene eseguito ed ospitato localmente sulla stessa macchina su cui viene avviata l'applicazione.
+
+\subsubsection{Installazione}
+L'installazione e la prima inizializzazione del sistema di gestione di basi di dati variano a seconda del sistema operativo in uso:
+\begin{itemize}
+    \item \textbf{Windows / macOS}: È necessario scaricare l'installer grafico dal sito ufficiale ed eseguire il setup guidato. Durante il processo, occorre definire la password per l'utente amministratore di default (\texttt{postgres}) e mantenere la porta di ascolto standard \texttt{5432}. Si raccomanda caldamente di includere l'installazione di \textbf{pgAdmin 4} (già integrato nell'installer) per usufruire di un'interfaccia grafica intuitiva atta alla gestione visuale della base dati.
+    \item \textbf{Linux (Debian/Ubuntu)}: L'installazione avviene interamente da terminale tramite il gestore di pacchetti Advanced Package Tool (\texttt{apt}) eseguendo la seguente sequenza di comandi:
+\begin{verbatim}
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+\end{verbatim}
+\end{itemize}
+
+\subsubsection{Configurazione del Database di Progetto}
+Prima di effettuare il primo avvio dell'applicazione CineMax, è indispensabile procedere alla creazione della base di dati dedicata. Sfruttando l'interfaccia a riga di comando (\texttt{psql}) o l'ambiente grafico pgAdmin, deve essere eseguito il seguente comando SQL:
+\begin{verbatim}
+CREATE DATABASE cinemax_db;
+\end{verbatim}
+I relativi script SQL DDL preposti alla generazione dello schema relazionale e delle tabelle (\texttt{schema.sql}) sono collocati all'interno della directory \path{/src/main/resources/} del progetto. Essi verranno agganciati ed eseguiti in modo completamente automatico dall'applicazione al momento del bootstrap o, in alternativa, potranno essere importati manualmente dall'amministratore per la pre-popolazione del database.
+
+\subsection{Gestione della Build e Comandi Maven}
+L'automazione della build, la gestione del ciclo di vita del software e la risoluzione delle dipendenze (tra cui il driver JDBC di PostgreSQL) definite nel file \texttt{pom.xml} sono interamente governate da Apache Maven. 
+
+Di seguito vengono elencati i comandi fondamentali da lanciare tramite terminale all'interno della directory radice del repository:
+\begin{itemize}
+    \item \textbf{Compilazione del codice sorgente:} \texttt{mvn compile} \\ Effettua il parsing e la traduzione dei file sorgenti \texttt{.java} in bytecode, posizionandoli nella cartella \path{target/classes/}.
+    \item \textbf{Generazione dell'eseguibile:} \texttt{mvn package} \\ Completa il packaging del progetto compilato, generando il file binario pronto all'uso all'interno della cartella \path{target/}.
+    \item \textbf{Pulizia e build completa:} \texttt{mvn clean install} \\ Rimuove preventivamente la directory \path{target/} per eliminare i residui delle compilazioni precedenti e riesegue l'intero ciclo di build da zero, garantendo la coerenza logica del codice sorgente.
+    \item \textbf{Generazione automatica delle JavaDoc:} \texttt{mvn javadoc:javadoc} \\ Analizza i commenti strutturati nel codice sorgente ed esporta la documentazione tecnica completa in formato HTML direttamente all'interno della cartella \path{doc/javadoc/}.
+\end{itemize}
+
+\subsection{Ambienti di Sviluppo Integrati (IDE)}
+Lo sviluppo, il refactoring e il debugging del codice sorgente sono stati condotti mediante l'ausilio dei seguenti ambienti di sviluppo integrati:
+\begin{itemize}
+    \item \textbf{IntelliJ IDEA} (Community o Ultimate Edition)
+    \item \textbf{Eclipse IDE} for Enterprise Java Developers
+\end{itemize}
+Il progetto può essere importato all'interno dell'IDE di preferenza selezionando l'opzione \textbf{``Open''} o \textbf{``Import Project''} e puntando direttamente al file descrittore \texttt{pom.xml} situato nella directory radice del repository. Questa procedura consente all'IDE di identificare correttamente la struttura del software e di scaricare autonomamente dal Maven Central Repository tutte le librerie esterne richieste, inclusi i driver JDBC per il collegamento a PostgreSQL.
+
+\section{Progettazione e architettura del software (UML)}
+La transazione da un sistema monolitico a una soluzione distibuita richiede una rigorosa pianificazionestrutturale, volta a massimizzare i requisiti non funzionali di scalabilità. manutenibilità, estendibilitàe sicurezza. In questo capitolo vine analizzate la scomposizione logica del sistema \textbf{CineMax}, dettagliando le scelte architetturali adottare, l'organizzazione dei package in termini di coesione e accopiamneto, i design pattern applicati e la modellazione dinamica dei flussi critici concorrenti.
+\subsection{Modello Architetturale} 
+Il sistema \textbf{CineMax} adotta un modello architetturale di tipo \textbf{Three-Tier (architettura a tre livelli)} innestando su un paradigma distribuito \textbf{Client/ Server} mediante l'infrastruttura di comunicazione Java RMI. Questa topologia consente una netta separazione delle responsabilià (\textbf{Separaation of concerns}), isolando l'interazione con l'utente, le regole business e la persistenza dei dati in layer logici indipendenti e foremente disaccoppiati.
+Il partizionamento dei tre livelli è strutturato come segue:
+\begin{enumerate}
+    \item  \textbf{Presentation Tier (Livello di prestazione):} allocaato interamente sul modulo \texttt{clientCM}, è costituito dell'interfaccia grafica (GUI). Questo livello ha la responsabilità esclusuiva di renderizzare le informazioni a schermo, catturare gli input dell'utente (Ospiti, Clienti, Proiezionisiti, Bigliettai) ed eseguire una prima validazione sintattica locale (es. conrollo dei campi vuoti o formati stringhe). Non possiede alcuna logica di buisness nè accesso diretto al database; ogni operazione dispositiva viene delegata a livello inferiore tramite l'invocazione di metodi remoti esposti dagli sub RMI.
+    \item \textbf{Application Business Logic Tier (Livello Logico):} Residente sul modulo \texttt{serverCM}, rappresenta il core operativo del sistema. Questo livello implementa i vincoli di integrità semantica della sala cinematografica (ad esempio, il controllo della sovrapposizione temporale dei palinsesti o la verifica della disponibilità effettiva di un posto prima della transazione). Il server mappa le richieste RMI entranti su thread concorrenti, orchestrando l'accesso sicuro alle risorse condivise mediante primitive di sincronizzazione avanzate, prevenendo attivamente fenomeni di \textit{race condition}.
+    \item \textbf{Data Tier (Livello Dati):} Costituito dal DBMS relazionale PostgreSQL. Questo tier è deputato alla memorizzazione persistente, alla consistenza transazionale (proprietà ACID) e alla sicurezza dei dati a lungo termine. Il Business Logic Tier interagisce con questo livello esclusivamente tramite l'interfaccia standard JDBC, isolando le query SQL all'interno di componenti specializzati.
+\end{enumerate}
+
+Grazie a questa architettura, modifiche strutturali alla GUI non impattano sulla logica computazionale, così come in cambio di schema nel database o una migrazione ad unaltro DBMS (es. da PostgreSQL a Oracle) richede modifiche circoscritte unicamnete al Data Tier, preservando intatto il resto del software.
+
+\subsection{Diagramma delle classi e orgaznizzazioni dei package}
+La struttura interna del codice segue una scomposizione in sotto-package guidata dal principio della massima coesione interna e del minimo accoppiamento esterno. Il package radice \texttt{cinemax} è ripartito in tre macro-aree logiche fondamnetali: \textbf{common}, \textbf{client} e \textbf{server}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{pics1/Diagramma.png} 
+    \caption{Diagram UML}
+    \label{fig:placeholder}
+\end{figure}
+
+Il diagramma sopra illustrato mostra la modellazione orentata agli oggetti delle entità di dominio presenti nel progetto nel sotto-package \texttt{commo.model}. Classi fondamnetali come \texttt{Utente}, \texttt{Film}, \texttt{Proiezione} e \texttt{Prenotazione} implementano l'interfaccia \texttt{Serializable} per consentire il passaggio per valore attraverso la rete. Si evidenziano attributi critici come la cifratura delle credenziali (\texttt{passwordCifrata}), la gestione delle capienze (\texttt{postiLiberi}) e i vincoli d'età delle pellicole (\texttt{etaMinima}).
+
+Di seguito viene esposta la scomposizzione analitica dei package e dei relativi componenti software:
+\subsubsection{Package \texttt{cinemax.common}}
+Rappresenta il punto di contatto logico e strutturale condiviso obbligatoriamente sia dal client che dal server. Contiene le interfacce remote RMI e gli oggetti di trasferimento dati (\textbf{DTO} / Model) che viaggiano sulla rete.
+\begin{itemize}
+    \item \textbf{\texttt{CinemaService} (Interfaccia):} Estende \texttt{java.rmi.Remote}. Dichiarerà tutti i metodi che il server si impegna ad esporre remoti (es. \texttt{autenticaUtente()}, \texttt{getPrenotazioniAttive()}, \texttt{prenotaPosto()}). Ogni metodo lancia un'eccezione controllata \texttt{RemoteException}.
+    \item \textbf{Classi di Modello (\texttt{Utente}, \texttt{Film}, \texttt{Proiezione}, \texttt{Prenotazione}):} Sono classi Plain Old Java Objects (POJO) pure, implementanti l'interfaccia standard \texttt{java.io.Serializable}. La serializzazione è un requisito vincolante di Java RMI per consentire il passaggio di parametri e valori di ritorno per valore (\textit{pass-by-value}) attraverso i socket di rete, convertendo lo stato delle istanze in flussi di byte.
+\end{itemize}
+
+\subsubsection{Package \texttt{cinemax.client}}
+Contiene l'infrastruttura legata alla presentazione visiva e alla cattura degli eventi.
+\begin{itemize}
+    \item \textbf{\texttt{ClientMain}:} Punto di ingresso dell'applicazione client; esegue la ricerca (\texttt{lookup}) nel registro RMI per ottenere il riferimento remoto dello stub di \texttt{CinemaService} e avvia l'interfaccia grafica.
+    \item \textbf{Sotto-package \texttt{.view}:} Comprende le classi grafiche responsabili del layout visivo (es. \texttt{LoginFrame}, \texttt{DashboardClient}, \texttt{PalinsestoPanel}, \texttt{MappaSalaComponent}). 
+    \item \textbf{Sotto-package \texttt{.controller}:} Classi mediatrici che intercettano le azioni dell'utente sulla GUI (es. la pressione di un pulsante) e invocano i metodi corrispondenti sullo stub RMI, aggiornando successivamente la vista in base alla risposta ricevuta.
+\end{itemize}
+
+\subsubsection{Package \texttt{cinemax.server}}
+Contiene l'implementazione della logica di business e governa l'accesso ai servizi di backend.
+\begin{itemize}
+    \item \textbf{\texttt{ServerMain}:} Inizializza l'istanza del server, istanzia il registro RMI locale e vi effettua il \texttt{rebind} dell'oggetto remoto sotto una stringa identificativa univoca.
+    \item \textbf{\texttt{CinemaServiceImpl}:} Estende \texttt{UnicastRemoteObject} e realizza concretamente l'interfaccia remota \texttt{CinemaService}. Al suo interno avviene il coordinamento della logica applicativa, la validazione dei vincoli aziendali e l'invocazione selettiva dei layer di persistenza.
+    \item \textbf{Sotto-package \texttt{.dao} (Data Access Object):} Isola la logica di persistenza. Contiene le interfacce e le implementazioni JDBC concrete (es. \texttt{UtenteDAO}, \texttt{UtenteDAOImpl}, \texttt{ProiezioneDAOImpl}) incaricate di dialogare direttamente con il database PostgreSQL tramite query SQL native strutturate.
+\end{itemize}
+
+\subsection{Design patterns utilizzati}
+Al fine di garantire flessibilità strutturale, riuso del codice e aderenza ai sani principi della programmazione orientata agli oggetti (SOLID), sono stati implementati in modo mirato i seguenti design pattern formali:
+
+\subsubsection{Singleton Pattern (Creazionale)}
+Applicato alla classe \texttt{DatabaseConnectionManager} presente nel modulo server. L'apertura e la chiusura incontrollata di connessioni di rete verso un DBMS è un'operazione computazionalmente onerosa che può portare al rapido esaurimento delle risorse del server.
+\begin{itemize}
+    \item \textbf{Giustificazione:} Il pattern garantisce l'esistenza di un'unica istanza centralizzata del manager di connessione per l'intera Java Virtual Machine del server. Fornisce un punto di accesso globale (\texttt{getInstance()}) e incapsula i parametri di configurazione del driver JDBC (URL, username, password), ottimizzando la gestione dei canali di comunicazione verso PostgreSQL.
+\end{itemize}
+
+\subsection{Data Access Object - DAO Pattern (Strutturale)}
+Utilizzato capillarmente per mediare la persistenza di tutte le entità del dominio (\texttt{Utente}, \texttt{Proiezione}, \texttt{Prenotazione}, \texttt{Film}). 
+\begin{itemize}
+    \item \textbf{Giustificazione:} Consente di disaccoppiare radicalmente il layer della logica di business (\texttt{CinemaServiceImpl}) dal codice SQL specifico di PostgreSQL. La logica applicativa invoca metodi astratti descritti dalle interfacce (es. \texttt{proiezioneDao.findOverlappingShowtimes()}), rimanendo completamente agnostica su come i dati siano memorizzati (tabelle relazionali, file XML, database NoSQL), incrementando l'indice di manutenibilità del software.
+\end{itemize}
+
+\subsection{Factory Pattern (Creazionale)}
+Abbinato al pattern DAO tramite la classe \texttt{DAOFactory}.
+\begin{itemize}
+    \item \textbf{Giustificazione:} Centralizza e scherma il processo di istanziazione dei componenti di accesso ai dati. Il server richiede le istanze dei DAO direttamente alla Factory. Se in futuro si rendesse necessario introdurre un meccanismo di caching o mutare l'implementazione concreta del DAO, sarà sufficiente intervenire sulla Factory senza alterare le classi client che ne fanno uso.
+\end{itemize}
+
+\subsubsection{Observer Pattern (Comportamentale)}
+Implementato per abilitare l'aggiornamento dinamico delle interfacce grafiche a seguito di mutazioni dello stato del server (architettura basata su eventi). Nel contesto distribuito Java RMI, assume la forma di \textbf{Remote Observer Pattern}.
+\begin{itemize}
+    \item \textbf{Giustificazione:} Quando un cliente prenota con successo uno o più posti all'interno di una determinata proiezione, la variazione di disponibilità deve riflettersi istantaneamente sulle GUI di tutti gli altri client sintonizzati sulla medesima schermata, per prevenire tentativi di acquisto su posti ormai occupati. I client registrano un proprio stub di ascolto remoto presso il server; al verificarsi della transazione, il server itera sulla lista dei listener attivi invocando in modalità push il metodo remoto di notifica (\texttt{updateView()}), forzando il ridisegno della mappa dei posti sul client.
+\end{itemize}
+
+\subsection{Processo transazionale e concorrente di prenotazione posto}
+Il flusso critico del sistema riguarda la prenotazione simultanea dello stesso identico posto (es. Riga 5, Colonna 10) per una determinata proiezione da parte di due utenti concorrenti ad un millisecondo di distanza. Per scongiurare fenomeni devastanti di \textit{overbooking} o stati inconsistenti della base dati, il flusso dinamico applica logiche di mutua esclusione sia a livello software che a livello DBMS.
+
+Di seguito viene esposta la sequenza logica dettagliata delle operazioni (che mappa in modo speculare il relativo Diagramma di Sequenza UML):
+
+\begin{enumerate}
+    \item \textbf{Invocazione remota:} Il \texttt{ClientController} cattura l'evento di click sul posto della mappa e invoca il metodo remoto dello stub: \texttt{cinemaService.prenotaPosto(idProiezione, riga, colonna, idUtente)}.
+    \item \textbf{Thread allocation:} La JVM del Server intercetta la richiesta di rete e alloca un thread dedicato dal pool RMI per servire la chiamata all'interno di \texttt{CinemaServiceImpl}.
+    \item \textbf{Inizio transazione SQL:} Il server richiede una connessione al \texttt{DatabaseConnectionManager}. Al fine di controllare accuratamente le singole operazioni, disabilita il commit automatico di JDBC (\texttt{connection.setAutoCommit(false)}), avviando formalmente una transazione ACID.
+    \item \textbf{Lock di lettura (Pessimistic Locking):} Il thread esegue una query SQL tramite il \texttt{PrenotazioneDAO} sul posto selezionato, sfruttando la clausola \texttt{FOR UPDATE} di PostgreSQL:
+    \begin{verbatim}
+    SELECT stato FROM posto WHERE id_proiezione = ? AND riga = ? AND colonna = ? FOR UPDATE;
+    \end{verbatim}
+    Il DBMS PostgreSQL blocca la riga corrispondente nel database. Se un secondo thread concorrente tenta di verificare lo stesso posto, viene posto in stato di attesa (\textit{blocked}) finché la prima transazione non si conclude.
+    \item \textbf{Verifica semantica:} Il Business Logic Tier riceve il risultato della query. Se lo stato del posto è \texttt{LIBERO}, il flusso procede. Se lo stato risulta già \texttt{OCCUPATO} (poiché il thread concorrente è arrivato un istante prima), viene sollevata un'eccezione personalizzata (\texttt{PostoGiaPrenotatoException}), la transazione esegue il \texttt{rollback} e il client riceve un messaggio di errore visivo sulla GUI.
+    \item \textbf{Scrittura e generazione codice:} Il server genera un codice di prenotazione alfanumerico univoco, inserisce il record nella tabella \texttt{prenotazione} ed esegue l'update dello stato del posto a \texttt{OCCUPATO}.
+    \item \textbf{Commit e Notifica dei Remote Observers:} Viene invocato il metodo \texttt{connection.commit()} per rendere permanenti e visibili le modifiche a livello globale nel database, rilasciando contestualmente il lock sulla riga. Successivamente, il server avvia un thread asincrono per scorrere la lista dei \texttt{RemoteObservers} registrati e notificare la variazione a tutti i client attivi, affinché la cella sulla mappa si colori di rosso in tempo reale.
+    \item \textbf{Risposta al client:} Il metodo remoto si chiude restituendo l'oggetto \texttt{Prenotazione} serializzato al client originario, il quale mostra la schermata di conferma con il codice univoco generato.
+\end{enumerate}
+
+\subsubsection{Fase di autenticazione e login}
+La fase di login descrive la transizione di stato del sistema da un utente anonimo (\textit{Ospite}) a un utente profilato e dotato di autorizzazioni specifiche basate su ruoli (RBAC).
+
+Il diagramma di attività e sequenza per questa fase si articola nei seguenti passi essenziali:
+\begin{enumerate}
+    \item L'utente inserisce le proprie credenziali (\texttt{username} e \texttt{password} in testo chiaro) nei campi di testo della classe \texttt{LoginFrame} e clicca sul pulsante di accesso.
+    \item Il controller del client intercetta l'azione, estrae le stringhe e invoca il metodo remoto \texttt{cinemaService.autenticaUtente(username, password)}.
+    \item Il server riceve le stringhe. Per ovvie ragioni di sicurezza e conformità ai principi di crittografia, le password non sono memorizzate in chiaro nel database. Il server calcola il valore di hash della password inserita utilizzando un algoritmo di hashing sicuro (es. SHA-256) combinato con una stringa di \textit{salt} univoca.
+    \item Il server interroga il \texttt{UtenteDAO} passando l'username e l'hash calcolato. Il DAO esegue una query mirata sulla tabella \texttt{utente}.
+    \item Se non viene trovata alcuna corrispondenza, il DAO restituisce un valore nullo; il server interpreta il risultato negativo e risponde lanciando una \texttt{CredenzialiInvalideException}, inducendo la GUI del client a mostrare una notifica pop-up di errore in rosso senza alterare lo stato della visualizzazione attuale.
+    \item Se la corrispondenza ha successo, il database restituisce le informazioni anagrafiche dell'utente e il suo ruolo associato all'interno del sistema (\texttt{CLIENTE}, \texttt{PROIEZIONISTA}, \texttt{BIGLIETTAIO}).
+    \item Il server istanzia un oggetto DTO di tipo \texttt{Utente}, lo popola con i dati estratti (escludendo l'hash della password per ragioni di sicurezza nel transito di rete) e lo restituisce al client.
+    \item Il client riceve l'oggetto \texttt{Utente}. La classe \texttt{ClientMain} distrugge l'istanza di \texttt{LoginFrame} per liberare memoria locale e, analizzando il campo \texttt{ruolo} contenuto nel DTO, istanzia dinamicamente la specifica dashboard autorizzativa (es. abilita i menu di configurazione palinsesto solo ed esclusivamente se il ruolo corrisponde a \texttt{PROIEZIONISTA}), completando la segregazione delle responsabilità a runtime.
+\end{enumerate}
+
+\section{Progettazione della base di dati ER Relazionale} 
+In questo capitolo viene dettagliato l'intero processo di progettazione, stutturazione e implementazione della base di dati relazionale a supporto del sistema \textit{CineMax}. L'obiettivo primario è definire un'archittettura dei dati persistente, robusta e coerente, capace di gestire in modo efficiente le limitazioni relative agli utenti (clienti e personale), alla programmazione delle proiezioni cinematrografiche e alla gestione delle prenotazioni dei posti in sala. 
+Il percorso metodologico segue i canoni standard dell'ingegneria dei dati e si articola in più fasi sequenziali: si parte da un'analisi e purificazione dei requisiti per definire il dizionario dei dati, si formalizza il Modello concettuale mediante il diagramma Enità-relazionale (ER), si analizzano le regole di business non esprimibili graficamnete e si procede alla ristrutturazione dello schema eliminando i costrutti complessi. Infine, viene presentata la traduzione nel Modello logico relazionale, supportata da una verifica formale  delle forme nomali (BCNF/3FN) per garantire l'assenza di anomale di aggiornamento, concludendo con le specifiche tecniche sul popolamenti iniziale della base di dati tramite script dedicati.
+\subsection{Analisi dei requisiti}
+Il sistema \textit{CineMax} richiede la gestione persistente dei dati relativi a un'infrastruttura cinematografica multisala. Il sistema prevede tre tipologie di utenti registrati: Clienti, Bigliettaai e Proiezionisti. 
+Ogni utente è identificato univocamente dalla propria email e possiede un nome, un cognome e una password. Il cinema programma una serie di proiezioni. Ogni proiezione si riferisce a uno specifico film (caratterizzato da titolo, regista, genere e durata), avviene in una determinata sala in una specifica data e ora, possiede un prezzo di biglietto e tiene traccia dei posti attualmente disponibili.
+I clienti possono effettuare prenotazioni per una determinta proiezione, specificando il numero di posti desiderati. Il sistema deve garantire la coerenza dei posti della sala e impedire sovraprenotazioni.
+
+
+\subsection{Modello concettuale (Diagramma ER)}
+Il diagramma concettuale esprime le entità principali del sistema e le relazioni cardinali che le governano, coerentemente con i modelli definiti nel sistema:
+
+
+\\
+
+
+foto diagramma 
+
+\\
+
+
+
+\subsubsection{Specifiche della relazioni e cardinalià}
+\begin{itemize}
+    \item \textbf{Effettua:} Associazione tra \textit{Utente} e \textit{Prenotazione}. Un Utente (con ruolo Cliente) può effettuare da $0$ a $N$ prenotazioni; una Prenotazione appartiene a uno e un solo Utente. (\textit{Cardinalità: 1 a N}).
+    \item \textbf{Riferita a:} Associazione tra \textit{Prenotazione} e \textit{Proiezione}. Una Prenotazione è associata a una e una sola Proiezione; una Proiezione può ricevere da $0$ a $N$ prenotazioni. (\textit{Cardinalità: 1 a N}).
+    \item \textbf{Caratterizza:} Associazione tra \textit{Film} e \textit{Proiezione}. Un Film può essere programmato in $0$ o più Proiezioni; una Proiezione si riferisce a uno e un solo Film. (\textit{Cardinalità: 1 a N}).
+\end{itemize}
+
+\subsection{Vincoli in linguaggio naturale}
+I seguenti vincoli di integrità e regole di business non sono direttamente esprimibili mediante le notazioni standard del diagramma ER e vengono implementati a livello applicativo o tramite vincoli \texttt{CHECK} sul DBMS PostgreSQL:
+\begin{enumerate}
+    \item \textbf{Coerenza temporale proiezioni:} La data e l'ora di inserimento di una nuova proiezione devono essere strettamente successive alla data odierna.
+    \item \textbf{Vincolo di capacità:} Il valore \texttt{num\_posti} inserito in una singola prenotazione deve essere minore o uguale ai \texttt{posti\_disponibili} della relativa proiezione al momento della transazione.
+    \item \textbf{Autorizzazione ruoli (RBAC):} Solamente gli utenti aventi valore \texttt{ruolo = 'CLIENTE'} possono essere associati come intestatari di una riga nella tabella delle prenotazioni. Solamente gli utenti con \texttt{ruolo = 'PROIEZIONISTA'} possono eseguire operazioni di inserimento o modifica sulle proiezioni.
+    \item \textbf{Unicità di sala:} Non possono essere programmate due proiezioni nella stessa sala alla stessa data la cui distanza temporale sia inferiore alla durata del film associato alla prima proiezione aumentata di un intervallo di pulizia standard (30 minuti).
+\end{enumerate}
+
+\subsection{Ristrutturazione dello schema ER}
+
+\subsubsection{Eliminazione di attributi composti o multivalore}
+\begin{itemize}
+    \item \textbf{Ruolo:} L'attributo ruolo dell'utente è modellato come un tipo enumerativo atomico (\texttt{Ruolo}), garantendo l'assenza di strutture composte direttamente all'interno dell'entità.
+    \item \textbf{Dati anagrafici:} Nome e cognome sono stati separati fin dal principio como attributi atomici testuali distinti per evitare stringhe composte difficili da indicizzare.
+\end{itemize}
+
+\subsubsection{Analisi delle ridondanze}
+\begin{itemize}
+    \item \textbf{Attributo \texttt{posti\_disponibili} in \textit{Proiezione}:} Dal punto di vista puramente teorico, questo attributo rappresenta una ridondanza, in quanto il numero di posti disponibili potrebbe essere calcolato dinamicamente a runtime effettuando una sottrazione tra la capacità nominale della sala e la sommatoria (\texttt{SUM}) dell'attributo \texttt{num\_posti} di tutte le prenotazioni associate a quella specifica proiezione.
+    \item \textbf{Motivazione del mantenimento:} Si è scelto formalmente di \textbf{mantenere la ridondanza} per ragioni di ottimizzazione prestazionale delle query. Poiché il Client effettua frequenti operazioni di lettura e filtraggio delle proiezioni per mostrare i film disponibili, calcolare la disponibilità ad ogni singola visualizzazione richiederebbe un'operazione di \texttt{JOIN} e aggregazione pesante sul database. Mantenerlo como attributo atomico aggiornato in modo transazionale all'atto della prenotazione riduce la complessità computazionale delle letture del server.
+\end{itemize}
+subsection{Modello Logico (Schema Relazionale)}
+La traduzione del modello concettuale produce le seguenti tabelle lineari. Le chiavi primarie sono contrassegnate dalla sottolineatura, mentre le chiavi esterne sono indicate in \textit{corsivo}.
+
+\begin{enumerate}
+    \item \textbf{Utente} (\underline{id},data di nascita,username, password, nome, cognome, ruolo)
+    \item \textbf{Film} (\underline{id}, titolo, regista, genere, durata, età)
+    \item \textbf{Proiezione} (\underline{id}, data, ora, sala, posti\_disponibili, prezzo, \textit{id\_film})
+    \item \textbf{Prenotazione} (\underline{id}, data\_prenotazione, num\_posti, \textit{id\_utente}, \textit{id\_proiezione})
+\end{enumerate}
+\subsubsection{Vincoli di integrita referenziale e Chiavi esterne (FK)}
+\begin{itemize}
+    \item Il campo \textit{id\_film} in \textbf{Proiezione} è chiave esterna associata a \texttt{id} della tabella \textbf{Film}.\\
+    \texttt{FOREIGN KEY (id\_film) REFERENCES Film(id) ON DELETE CASCADE}
+    \item Il campo \textit{id\_utente} in \textbf{Prenotazione} è chiave esterna associata a \texttt{id} della tabella \textbf{Utente}.\\
+    \texttt{FOREIGN KEY (id\_utente) REFERENCES Utente(id) ON DELETE RESTRICT}
+    \item Il campo \textit{id\_proiezione} in \textbf{Prenotazione} è chiave esterna associata a \texttt{id} della tabella \textbf{Proiezione}.\\
+    \texttt{FOREIGN KEY (id\_proiezione) REFERENCES Proiezione(id) ON DELETE CASCADE}
+\end{itemize}
+\subsection{Verifica delle forme normali (Analisi formale)}
+Per dimostrare rigorosamente lo stato di normalizzazione dello schema relazionale, analizziamo le Dipendenze Funzionali (DF) non banali che governano ogni singola relazione.
+
+\subsubsection{1. Tabella utente}
+\begin{itemize}
+    \item \textbf{Dipendenze funzionali:}
+    \begin{itemize}
+        \item $id \rightarrow \{username, password, nome, cognome, ruolo\}$
+        \item $email \rightarrow \{id, password, nome, cognome, ruolo\}$
+    \end{itemize}
+    \item \textbf{Analisi:} Le chiavi candidate della relazione sono $\{id\}$ e $\{email\}$. In ciascuna delle dipendenze funzionali sopra enunciate, il determinante ($id$ o $email$) costituisce una superchiave della relazione. La tabella si trova pertanto in \textbf{Forma Normale di Boyce-Codd (BCNF)}.
+\end{itemize}
+\subsubsection{2. Tabella film}
+\begin{itemize}
+    \item \textbf{Dipendenze funzionali:} $id \rightarrow \{titolo, regista, genere, durata\}$
+    \item \textbf{Analisi:} L'unica chiave candidata è $\{id\}$. Il determinante coincide con la chiave primaria, garantendo formalmente il rispetto della \textbf{BCNF}.
+\end{itemize}
+
+\subsubsection{3. Tabella proiezione}
+\begin{itemize}
+    \item \textbf{Dipendenze funzionali:} $id \rightarrow \{data, ora, sala, posti\_disponibili, prezzo, id\_film\}$
+    \item \textbf{Analisi:} L'unica chiave candidata è $\{id\}$. Il determinante è una superchiave. Tutti gli attributi non chiave dipendono in maniera diretta, totale e non transitiva dall'identificatore. Lo schema è in \textbf{BCNF}.
+\end{itemize}
+\subsubsection{4. Tabella prenotazione}
+\begin{itemize}
+    \item \textbf{Dipendenze funzionali:} $id \rightarrow \{data\_prenotazione, num\_posti, id\_utente, id\_proiezione\}$
+    \item \textbf{Analisi:} L'unica chiave candidata è $\{id\}$. Il determinante è una superchiave. Di conseguenza, anche questa relazione rispetta i vincoli della \textbf{BCNF}.
+\end{itemize}
+
+\textbf{Conclusione formale:} Poiché tutte le relazioni che compongono lo schema logico del database soddisfano i requisiti per cui ogni determinante di una dipendenza funzionale non banale è una superchiave, l'intera base di dati si trova in \textbf{Forma Normale di Boyce-Codd (BCNF)} e, di conseguenza, soddisfa implicitamente anche i requisiti della \textbf{Terza Forma Normale (3FN)}.
+
+\subsection{Dettaglio dei Dati Iniziali}
+Il popolamento iniziale e la creazione automatica delle strutture tabelle sono delegati al modulo autonomo \texttt{DBCreator}. All'avvio dell'applicazione di setup, il sistema provvede ad eseguire gli script DDL e successivamente i comandi DML di inserimento dei dati obbligatori minimi per il collaudo del sistema.
+
+\subsubsection{Script SQL di Popolamento Obbligatorio (Utenti Personale)}
+\begin{verbatim}
+Inserimento dei 2 Proiezionisti minimi richiesti
+INSERT INTO Utente (username, password, nome, cognome, ruolo) VALUES
+('marco.neri', 'password123', 'Marco', 'Neri', 'PROIEZIONISTA'),
+('luca.rossi5', 'password456', 'Alice', 'Rossi', 'PROIEZIONISTA');
+\end{verbatim}
+\begin{verbatim}
+Inserimento dei 5 Bigliettai minimi richiesti
+INSERT INTO Utente (username, password, nome, cognome, ruolo) VALUES
+('anna.verdi', 'biglietto1', 'Anna', 'Verdi', 'BIGLIETTAIO'),
+('paolo.bianchi', 'biglietto2', 'Paolo', 'Bianchi', 'BIGLIETTAIO'),
+('elena.gallo', 'biglietto3', 'Elena', 'Gallo', 'BIGLIETTAIO'),
+('stefano.galli', 'biglietto4', 'Stefano', 'Galli', 'BIGLIETTAIO'),
+('chiaretta', 'biglietto5', 'Chiara', 'Colombo', 'BIGLIETTAIO');
+\end{verbatim}
+
+
+\section{Implementazione e gestione della conocrrenza}
+In questo capitolo viene esaminata l'architettura implementativa del sistema \textit{CineMax}, focalizzando l'attenzione sui meccanismi software e sistemistici che garantiscono la persistenza dei dati, la sicurezza delle transazioni e la tolleranza ai guasti. La natura distribuita dell'applicazione, basata sulla tecnologia Java RMI, implica la gestione di richieste simultanee provenienti da molteplici client indipendenti (quali postazioni di biglietteria o utenti remoti). 
+
+Nelle sezioni seguenti viene inizialmente analizzato lo strato di interfacciamento al DBMS PostgreSQL tramite driver JDBC, descrivendo il pattern adottato per l'ottimizzazione delle connessioni. 
+\\
+\\
+\subsection{Connessione JDBC}
+subsection{Connessione JDBC}
+L'interfacciamento tra il server dell'applicazione Java e il sistema di gestione di basi di dati relazionali PostgreSQL avviene tramite la tecnologia \textbf{JDBC (Java Database Connectivity)}, utilizzando il driver ufficiale distribuito nei moduli di dipendenza del progetto.
+
+Per garantire un'efficiente gestione delle risorse ed evitare l'apertura indiscriminata di connessioni verso il DBMS (operazione computazionalmente onerosa), è stata implementata la classe \texttt{DBConnection} sfruttando il design pattern \textbf{Singleton}. Questo approccio assicura che nel ciclo di vita dell'applicazione esista una sola istanza centralizzata del gestore della connessione, la quale espone un metodo pubblico per ottenere il riferimento all'oggetto \texttt{Connection}.
+
+Il processo di interfacciamento si articola nelle seguenti fasi:
+\begin{itemize}
+    \item \textbf{Caricamento del driver:} All'atto dell'inizializzazione, la classe registra il driver PostgreSQL in memoria.
+    \item \textbf{Configurazione dei parametri:} La stringa di connessione adotta la sintassi standard \texttt{jdbc:postgresql://host:porta/nome\_db}, dove i parametri di rete (indirizzo IP dell'host, porta di ascolto predefinita 5432, credenziali di amministrazione) vengono passati in modo dinamico o centralizzato.
+    \item \texttt{AutoCommit} impostato a \texttt{false}: Al fine di gestire atomicamente le operazioni complesse, la modalità di invio automatico dei comandi SQL viene disattivata, delegando al codice Java l'esplicita invocazione dei metodi \texttt{commit()} o \texttt{rollback()} all'interno dei blocchi transazionali.
+\end{itemize}
+\subsection{Gestione degli Accessi Concorrenti}
+In un sistema multisala distribuito, la gestione degli accessi simultanei alle stesse risorse informative costituisce una delle sfide progettuali più critiche. Lo scenario tipico di conflitto (o \textit{race condition}) si verifica quando due o più utenti tentano di prenotare l'ultimo posto rimasto nello stesso istante per la medesima proiezione. 
+
+Senza un adeguato meccanismo di controllo, si incorrerebbe nel fenomeno del \textbf{Lost Update} (aggiornamento perduto): entrambi i thread di esecuzione leggerebbero lo stesso numero di posti disponibili (ad esempio, 1), autorizzerebbero la transazione e aggiornerebbero il contatore decrementandolo, portando la base di dati in uno stato incoerente di sovraprenotazione (posti negativi o vendite duplicate).
+
+Per risolvere questo problema, nel sistema \textit{CineMax} è stato scelto di adottare un approccio di \textbf{Pessimistic Locking a livello di DBMS}. 
+
+\subsubsection{Descrizione dell'approccio scelto}
+Invece di utilizzare blocchi software nella JVM del server (come la parola chiave \texttt{synchronized} o la classe \texttt{ReentrantLock}), che risulterebbero inefficaci qualora l'applicazione venisse scalata su più server fisici in cluster, si è preferito demandare la sincronizzazione direttamente al motore transazionale di PostgreSQL.
+
+Il flusso logico ed esecutivo della prenotazione concorrente viene così disciplinato:
+\begin{enumerate}
+    \item Quando un client richiede l'acquisto di biglietti, il server apre una transazione SQL dedicatara.
+    \item All'interno della transazione, prima di effettuare qualsiasi controllo, viene eseguita una query di lettura sulla tabella \texttt{Proiezione} utilizzando la clausola esplicita \textbf{\texttt{SELECT ... FOR UPDATE}}.
+    \item L'istruzione \texttt{FOR UPDATE} istruisce PostgreSQL a porre un blocco esclusivo (Lock di scrittura) sulla riga corrispondente a quella specifica proiezione. 
+    \item Se un secondo thread tenta di leggere la stessa proiezione con la medesima transazione, PostgreSQL lo pone in uno stato di attesa (\textit{blocking}).
+    \item Il primo thread esegue la verifica logica: se i posti sono sufficienti, inserisce la riga nella tabella \texttt{Prenotazione} e aggiorna l'attributo \texttt{posti\_disponibili} della tabella \texttt{Proiezione}.
+    \item Al momento della chiamata del metodo \texttt{commit()}, la transazione viene consolidata sul disco fisso e il lock sulla riga viene rilasciato. A questo punto, il secondo thread viene sbloccato: leggerà il nuovo valore aggiornato dei posti disponibili e, accorgendosi che sono terminati, vedrà la propria richiesta respinta in modo sicuro.
+\end{enumerate}
+\section{Appendice SQL}
+
+In questa appendice viene riportato il codice SQL essenziale per la definizione della base di dati (\textbf{DDL}) e per le principali query di manipolazione (\textbf{DML}) utilizzate dal sistema.
+
+\subsection{Schema DDL Compatto}
+Lo script seguente si occupa della rimozione preventiva e della creazione delle cinque tabelle principali, integrando i vincoli di chiave primaria, chiave esterna e integrità direttamente nella definizione dei campi.
+
+\begin{verbatim}
+DROP TABLE IF EXISTS Recita CASCADE;
+DROP TABLE IF EXISTS Proiezioni CASCADE;
+DROP TABLE IF EXISTS Film CASCADE;
+DROP TABLE IF EXISTS Attori CASCADE;
+DROP TABLE IF EXISTS Sale CASCADE;
+
+CREATE TABLE Attori (
+    CodAttore NUMERIC PRIMARY KEY,
+    Nome VARCHAR(40) NOT NULL
+);
+
+CREATE TABLE Film (
+    CodFilm NUMERIC PRIMARY KEY, 
+    Titolo VARCHAR(100) NOT NULL,
+    AnnoProduzione SMALLINT NOT NULL,
+    Nazione VARCHAR(30) NOT NULL,
+    Regista VARCHAR(40) NOT NULL,
+    Genere VARCHAR(20) NOT NULL
+);
+
+CREATE TABLE Recita (
+    CodAttore NUMERIC REFERENCES Attori(CodAttore),
+    CodFilm NUMERIC REFERENCES Film(CodFilm),
+    PRIMARY KEY (CodAttore, CodFilm)
+);
+
+CREATE TABLE Sale (
+    CodSala NUMERIC PRIMARY KEY, 
+    NomeSala VARCHAR(30) DEFAULT 'Sala 1',
+    NomeCinema VARCHAR(50) NOT NULL,
+    Città VARCHAR(40) NOT NULL
+);
+
+CREATE TABLE Proiezioni (
+    CodProiezione NUMERIC PRIMARY KEY,
+    CodFilm NUMERIC NOT NULL REFERENCES Film(CodFilm),
+    CodSala NUMERIC NOT NULL REFERENCES Sale(CodSala),
+    DataProiezione DATE NOT NULL
+);
+\end{verbatim}
+
+\subsection{Query DML Principali}
+Di seguito vengono isolate le istruzioni SQL parametriche più significative utilizzate a runtime dall'applicazione per l'interazione con la base di dati:
+
+\begin{itemize}
+    \item \textbf{Inserimento di un nuovo spettacolo nel palinsesto:}
+    \begin{verbatim}
+    INSERT INTO Proiezioni (CodProiezione, CodFilm, CodSala, DataProiezione) VALUES (?, ?, ?, ?);
+    \end{verbatim}
+    
+    \item \textbf{Ricerca dei film in programmazione in una specifica città (con JOIN):}
+    \begin{verbatim}
+    SELECT f.Titolo, s.NomeCinema, s.NomeSala, p.DataProiezione 
+    FROM Proiezioni p
+    JOIN Film f ON p.CodFilm = f.CodFilm
+    JOIN Sale s ON p.CodSala = s.CodSala
+    WHERE s.Città = ?;
+    \end{verbatim}
+    
+    \item \textbf{Visualizzazione del cast di un determinato film:}
+    \begin{verbatim}
+    SELECT a.Nome FROM Attori a
+    JOIN Recita r ON a.CodAttore = r.CodAttore
+    WHERE r.CodFilm = ?;
+    \end{verbatim}
+\end{itemize}
+
+\section{Sitografia e bibliografia}
+\begin{itemize}
+    \item Oracle Java Documentation \url {https://docs.oracle.com/en/java/}
+    \item Apache Maven Project \url{https://maven.apache.org/}
+    \item PostgreSQL Official Documentation: \url{https://www.postgresql.org/docs/}
+\end{itemize}
+\end{document}
