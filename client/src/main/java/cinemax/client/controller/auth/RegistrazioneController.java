@@ -137,10 +137,10 @@ public class RegistrazioneController {
 
         griglia.add(campoNome, 0, 0);
         griglia.add(campoUsername, 0, 1);
-        griglia.add(campoDataNascita, 0, 2);
+        griglia.add(campoDomicilio, 0, 2);
 
         griglia.add(campoCognome, 1, 0);
-        griglia.add(campoDomicilio, 1, 1);
+        griglia.add(campoDataNascita, 1, 1);
 
         Region staccoPassword = new Region();
         staccoPassword.setMinHeight(8);

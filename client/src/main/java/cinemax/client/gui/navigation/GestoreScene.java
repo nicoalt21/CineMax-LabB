@@ -1,10 +1,12 @@
 package cinemax.client.gui.navigation;
 
 import cinemax.client.controller.auth.StartController;
+import cinemax.client.controller.auth.ConnessioneController;
 import cinemax.client.controller.auth.LoginController;
 import cinemax.client.controller.auth.RegistrazioneController;
-import cinemax.client.controller.cliente.DashboardClienteController;
 import cinemax.client.controller.shared.BaseLayoutController;
+import cinemax.client.gui.model.Impostazioni;
+import cinemax.client.service.FornitoreServizi;
 import cinemax.common.model.Utente;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -24,10 +26,35 @@ public class GestoreScene {
     private Stage stagePrincipale;
     private Scene scena;
 
-    // Inizializza il gestore con lo Stage principale e mostra la prima schermata (Start). Da chiamare una sola volta all'avvio.
-    public void inizializza(Stage primaryStage) {
+    // Fornitore dei tre servizi remoti (oggi finti, domani stub RMI reali).
+    // I controller lo ottengono da qui tramite getFornitoreServizi().
+    private FornitoreServizi fornitoreServizi;
+
+    // Impostazioni condivise per tutta la sessione (es. risultati per pagina).
+    private final Impostazioni impostazioni = new Impostazioni();
+
+    // Inizializza il gestore con lo Stage principale e il fornitore dei servizi,
+    // poi mostra la prima schermata (Start). Da chiamare una sola volta all'avvio.
+    public void inizializza(Stage primaryStage, FornitoreServizi fornitoreServizi) {
         this.stagePrincipale = primaryStage;
-        vaiAStart();
+        this.fornitoreServizi = fornitoreServizi;
+        vaiAConnessione();
+    }
+
+    // Restituisce il fornitore dei servizi remoti, da passare ai controller.
+    public FornitoreServizi getFornitoreServizi() {
+        return fornitoreServizi;
+    }
+
+    // Restituisce le impostazioni condivise della sessione.
+    public Impostazioni getImpostazioni() {
+        return impostazioni;
+    }
+
+    // Mostra la schermata di connessione al server (prima vista all'avvio).
+    public void vaiAConnessione() {
+        ConnessioneController connessione = new ConnessioneController(this);
+        impostaRadice(connessione.getRoot());
     }
 
     // Mostra la schermata iniziale (Accedi / Registrati / Continua come Guest).
@@ -65,14 +92,10 @@ public class GestoreScene {
         BaseLayoutController layout = new BaseLayoutController(this);
         layout.inizializzaContesto(utenteLoggato); // null = Guest
 
-        // Per ora tutti (Cliente e Guest) usano la dashboard del Cliente.
-        // TODO: switch sul ruolo per Proiezionista / Bigliettaio.
-        DashboardClienteController dashboard =
-                new DashboardClienteController(this, layout, titoloInizialeGuest);
-        dashboard.setUtente(utenteLoggato);
-        dashboard.inizializza();
+        // Il layout conosce il ruolo e sceglie la schermata iniziale adatta
+        // (ricerca per cliente/guest/proiezionista, proiezioni di oggi per bigliettaio).
+        layout.mostraDashboardIniziale(titoloInizialeGuest);
 
-        layout.impostaContenutoCentrale(dashboard.getRoot());
         impostaRadice(layout.getRoot());
     }
 

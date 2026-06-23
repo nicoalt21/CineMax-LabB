@@ -52,7 +52,7 @@ public class FilterBarComponent extends VBox {
     private final Label badgeFiltri = new Label();
 
     // Pannello dei filtri avanzati (genere, date, prezzo), mostrato/nascosto al toggle
-    private final GridPane pannelloAvanzati;
+    private final VBox pannelloAvanzati;
 
     // Colonne del pannello avanzati che possono essere nascoste in blocco
     private VBox colonnaDate1;
@@ -127,13 +127,13 @@ public class FilterBarComponent extends VBox {
         return riga;
     }
 
-    // Pannello dei filtri avanzati: genere, date (da/a), prezzo (min/max).
-    private GridPane costruisciPannelloAvanzati() {
+    // Pannello dei filtri avanzati: genere, date (da/a), prezzo (min/max), + Azzera.
+    private VBox costruisciPannelloAvanzati() {
         GridPane griglia = new GridPane();
         griglia.getStyleClass().add("pannello-filtri");
         griglia.setHgap(12);
         griglia.setVgap(10);
-        griglia.setPadding(new Insets(0, 12, 12, 12));
+        griglia.setPadding(new Insets(0, 12, 0, 12));
 
         VBox colonnaGenere = costruisciColonna("Genere", campoGenere);
         campoGenere.setPromptText("Tutti");
@@ -172,7 +172,16 @@ public class FilterBarComponent extends VBox {
             griglia.getColumnConstraints().add(cc);
         }
 
-        return griglia;
+        // Riga col bottone "Azzera filtri": cancella i filtri avanzati ma tiene il titolo.
+        Button btnAzzera = new Button("Azzera filtri");
+        btnAzzera.getStyleClass().add("bottone-secondario");
+        btnAzzera.setOnAction(e -> azzeraFiltriTranneTitolo());
+        HBox rigaAzzera = new HBox(btnAzzera);
+        rigaAzzera.setAlignment(Pos.CENTER_RIGHT);
+        rigaAzzera.setPadding(new Insets(10, 12, 12, 12));
+
+        VBox contenitore = new VBox(griglia, rigaAzzera);
+        return contenitore;
     }
 
     // Colonna "etichetta sopra, controllo sotto", a tutta larghezza.
@@ -262,6 +271,19 @@ public class FilterBarComponent extends VBox {
         prezzoMax.clear();
         pulisciErrore();
         aggiornaBadgeFiltri();
+    }
+
+    // Azzera i filtri avanzati (genere, date, prezzo) mantenendo il titolo inserito.
+    // Dopo l'azzeramento rilancia la ricerca con il solo titolo rimasto.
+    public void azzeraFiltriTranneTitolo() {
+        campoGenere.clear();
+        dataDa.setValue(null);
+        dataA.setValue(null);
+        prezzoMin.clear();
+        prezzoMax.clear();
+        pulisciErrore();
+        aggiornaBadgeFiltri();
+        onCercaCliccato(); // ripropone i risultati col solo titolo
     }
 
     // Imposta dei valori predefiniti nei filtri (es. titolo passato dall'utente Guest

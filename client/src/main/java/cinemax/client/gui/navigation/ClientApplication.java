@@ -1,5 +1,6 @@
 package cinemax.client.gui.navigation;
 
+import cinemax.client.service.FornitoreServizi;
 import javafx.application.Application;
 import javafx.scene.image.Image;
 import javafx.scene.text.Font;
@@ -53,10 +54,16 @@ public class ClientApplication extends Application {
             primaryStage.setMinWidth(600);
             primaryStage.setMinHeight(500);
 
+            // Scelta dell'implementazione dei servizi. Per ora si usano i finti
+            // in memoria, così la UI è sviluppabile e testabile senza il server.
+            // Quando ci sarà la schermata IP:porta, qui si deciderà fra
+            // FornitoreServizi.creaFinto() e FornitoreServizi.creaReale(host, porta).
+            FornitoreServizi fornitoreServizi = FornitoreServizi.creaFinto();
+
             // La navigazione (Scene, CSS, schermata iniziale) è gestita interamente
             // da GestioreScene: la UI è costruita in codice Java, niente FXML.
             GestoreScene gestoreScene = new GestoreScene();
-            gestoreScene.inizializza(primaryStage);
+            gestoreScene.inizializza(primaryStage, fornitoreServizi);
 
             primaryStage.show();
 

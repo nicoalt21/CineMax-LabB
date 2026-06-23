@@ -186,13 +186,63 @@
 .card-titolo {
     -fx-font-family: "DM Serif Display", serif;
     -fx-text-fill: -fx-text-main;
-    -fx-font-size: 20px;
+    -fx-font-size: 18px;
+}
+
+/* Pallino del limite d'età (semaforo) accanto al titolo della proiezione. */
+.pallino-eta {
+    -fx-stroke: rgba(0, 0, 0, 0.25);
+    -fx-stroke-width: 0.5px;
+}
+
+.fascia-verde {
+    -fx-fill: #4CAF50;
+}
+
+.fascia-giallo {
+    -fx-fill: #FFD54F;
+}
+
+.fascia-arancione {
+    -fx-fill: #FF9800;
+}
+
+.fascia-rosso {
+    -fx-fill: #F44336;
 }
 
 /* Etichetta "posti liberi" quando la proiezione e' esaurita. */
 .testo-esaurito {
     -fx-text-fill: -fx-error-color;
     -fx-font-weight: bold;
+}
+
+/* Card di una prenotazione passata: attenuata e non interattiva (sola consultazione,
+   tranne l'azione Elimina consentita dalle specifiche). */
+.card-passata {
+    -fx-opacity: 0.5;
+    -fx-cursor: default;
+}
+
+.card-passata:hover {
+    -fx-border-color: #404040;
+}
+
+/* Campo del codice prenotazione: di sola lettura ma selezionabile (copia-incolla).
+   Aspetto discreto, senza riquadro da input, con carattere monospaziato. */
+.campo-codice {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-muted;
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 12px;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+    -fx-cursor: text;
+}
+
+.campo-codice:focused {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
 }
 
 /* Barra di ricerca/filtri sopra l'elenco. */
@@ -258,6 +308,29 @@
     -fx-padding: 1px 7px;
 }
 
+/* Bottoni di ordinamento dei risultati (Nome, Data, Posti, Costo). */
+.bottone-ordinamento {
+    -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-muted;
+    -fx-border-color: #404040;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 5px 12px;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+}
+
+.bottone-ordinamento:hover {
+    -fx-border-color: -fx-primary-color;
+    -fx-text-fill: -fx-text-main;
+}
+
+.bottone-ordinamento-attivo {
+    -fx-border-color: -fx-primary-color;
+    -fx-text-fill: -fx-primary-color;
+}
+
 /* Voce del menu laterale (a tutta larghezza, allineata a sinistra). */
 .voce-menu {
     -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
@@ -274,6 +347,16 @@
     -fx-text-fill: -fx-primary-color;
 }
 
+/* Etichetta del ruolo in basso a sinistra nel menu laterale: discreta ed elegante. */
+.etichetta-ruolo {
+    -fx-text-fill: -fx-text-muted;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 4px 0 4px;
+    -fx-border-color: #404040 transparent transparent transparent;
+    -fx-border-width: 0.5px 0 0 0;
+}
+
 /* Area scrollabile dei risultati: trasparente, senza bordo di default. */
 .area-scroll {
     -fx-background-color: transparent;
@@ -283,4 +366,62 @@
 
 .area-scroll > .viewport {
     -fx-background-color: transparent;
+}
+
+/* Overlay di conferma in-app: copre il contenuto con uno sfondo scuro semi-trasparente.
+   La domanda appare nel riquadro centrale, dentro la finestra dell'app. */
+.overlay-conferma {
+    -fx-background-color: rgba(0, 0, 0, 0.55);
+}
+
+.riquadro-conferma {
+    -fx-background-color: -fx-surface-color;
+    -fx-background-radius: 10px;
+    -fx-border-color: #404040;
+    -fx-border-radius: 10px;
+}
+
+/* Barra di paginazione dei risultati (1 ... corr-1 corr corr+1 ... ultima). */
+.barra-paginazione {
+    -fx-padding: 8px 0 0 0;
+}
+
+.bottone-pagina {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-muted;
+    -fx-border-color: #404040;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 4px 10px;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+    -fx-min-width: 32px;
+}
+
+.bottone-pagina:hover {
+    -fx-border-color: -fx-primary-color;
+    -fx-text-fill: -fx-text-main;
+}
+
+.bottone-pagina-attiva {
+    -fx-background-color: -fx-primary-color;
+    -fx-text-fill: #141414;
+    -fx-border-color: -fx-primary-color;
+    -fx-font-weight: bold;
+}
+
+.puntini-pagina {
+    -fx-text-fill: -fx-text-muted;
+    -fx-padding: 4px 4px;
+    -fx-cursor: hand;
+}
+
+.campo-salto-pagina {
+    -fx-background-color: -fx-surface-color;
+    -fx-text-fill: -fx-text-main;
+    -fx-border-color: -fx-primary-color;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 4px 6px;
+    -fx-font-size: 12px;
 }

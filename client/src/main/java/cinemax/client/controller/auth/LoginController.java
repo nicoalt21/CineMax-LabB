@@ -1,6 +1,8 @@
 package cinemax.client.controller.auth;
 
 import cinemax.client.gui.navigation.GestoreScene;
+import cinemax.common.model.Utente;
+import cinemax.common.util.Cifrario;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -11,6 +13,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
+import java.rmi.RemoteException;
+
 // Schermata di login, costruita interamente in codice Java (come StartController). Riceve il GestoreScene nel costruttore per poter navigare.
 public class LoginController {
 
@@ -19,6 +23,7 @@ public class LoginController {
 
     private final TextField campoUsername = new TextField();
     private final PasswordField campoPassword = new PasswordField();
+    private final Label labelErrore = new Label();
 
     public LoginController(GestoreScene gestoreScene) {
         this.gestoreScene = gestoreScene;
@@ -52,6 +57,10 @@ public class LoginController {
         btnConferma.getStyleClass().add("bottone-primario");
         btnConferma.setOnAction(e -> onConfermaLoginCliccato());
 
+        labelErrore.getStyleClass().add("campo-errore");
+        labelErrore.setManaged(false);
+        labelErrore.setVisible(false);
+
         Button btnIndietro = new Button("Indietro");
         btnIndietro.setMaxWidth(280);
         btnIndietro.getStyleClass().add("bottone-secondario");
@@ -69,20 +78,53 @@ public class LoginController {
 
         contenitore.getChildren().addAll(
                 titolo, campoUsername, campoPassword,
-                btnConferma, btnIndietro,
+                btnConferma, labelErrore, btnIndietro,
                 rigaRegistrati
         );
         return contenitore;
     }
 
     public void onConfermaLoginCliccato() {
-        // TODO: validare i campi e chiamare ConnettoreServer.eseguiLogin(Username, password).
-        // In caso di successo il server restituisce l'Utente:
-        //   Utente utente = ...;
-        //   gestoreScene.caricaLayoutEDashboard(utente);
-        String Username = campoUsername.getText();
+        pulisciErrore();
+
+        String username = campoUsername.getText();
         String password = campoPassword.getText();
-        System.out.println("TODO login: " + Username + " / " + password);
+
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
+            mostraErrore("Inserisci username e password.");
+            return;
+        }
+
+        // La password viaggia già cifrata: il chiaro non lascia mai il controller.
+        String passwordCifrata = Cifrario.cifraPassword(password);
+
+        try {
+            Utente utente = gestoreScene.getFornitoreServizi()
+                    .getServizioAutenticazione()
+                    .login(username, passwordCifrata);
+
+            if (utente == null) {
+                mostraErrore("Username o password non corretti.");
+                return;
+            }
+
+            // Login riuscito: entro nel layout con la dashboard adatta all'utente.
+            gestoreScene.caricaLayoutEDashboard(utente);
+        } catch (RemoteException e) {
+            mostraErrore("Server non raggiungibile. Riprova.");
+        }
+    }
+
+    private void mostraErrore(String messaggio) {
+        labelErrore.setText(messaggio);
+        labelErrore.setManaged(true);
+        labelErrore.setVisible(true);
+    }
+
+    private void pulisciErrore() {
+        labelErrore.setText("");
+        labelErrore.setManaged(false);
+        labelErrore.setVisible(false);
     }
 
     public void onRegistratiCliccato() {

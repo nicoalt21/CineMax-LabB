@@ -1,5 +1,9 @@
+/*
+ * Autore: (compilare) - matricola: (compilare) - sede: VA/CO
+ */
 package cinemax.client.gui.component;
 
+import cinemax.client.gui.util.FasciaEta;
 import cinemax.common.model.Film;
 import cinemax.common.model.Proiezione;
 import cinemax.common.model.Ruolo;
@@ -7,10 +11,12 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
 
 import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
@@ -19,9 +25,12 @@ import java.util.function.Consumer;
  Scheda (card) che mostra i dati di una singola Proiezione, costruita interamente in
  codice Java (niente FXML, come il resto della UI).
 
- I dettagli del film vengono letti dall'oggetto Film associato alla proiezione
- (Proiezione.getFilm()), mentre data/ora, costo e posti liberi appartengono alla
- Proiezione stessa.
+ Layout compatto: titolo (con pallino del limite d'età accanto), una riga di dettagli
+ film, una riga con data/prezzo/posti e la riga azioni.
+
+ Il pallino d'età usa un semaforo (verde/giallo/arancione/rosso) calcolato da
+ FasciaEta in base all'età minima del film. Accanto al pallino è mostrato il valore
+ numerico (es. "VM13").
 
  Riutilizzo tra ruoli: il bottone azione principale cambia etichetta e comportamento a
  seconda del ruolo (es. "Prenota" per il cliente, "Modifica" per il proiezionista). Le
@@ -34,6 +43,8 @@ public class CardProiezione extends VBox {
             DateTimeFormatter.ofPattern("dd/MM/yyyy - HH:mm");
 
     private final Label titoloLabel = new Label();
+    private final Circle pallinoEta = new Circle(6);
+    private final Label etaLabel = new Label();
     private final Label dettagliFilmLabel = new Label();
     private final Label dataLabel = new Label();
     private final Label prezzoLabel = new Label();
@@ -46,13 +57,21 @@ public class CardProiezione extends VBox {
     private Proiezione proiezioneCorrente;
 
     public CardProiezione() {
-        super(8);
-        setPadding(new Insets(15));
+        super(2);
+        setPadding(new Insets(7, 14, 7, 14));
         setMaxWidth(Double.MAX_VALUE);
         getStyleClass().add("card-proiezione");
 
         titoloLabel.getStyleClass().add("card-titolo");
         titoloLabel.setWrapText(true);
+
+        etaLabel.getStyleClass().add("testo-secondario");
+
+        // Titolo + pallino età + valore numerico, sulla stessa riga.
+        Region spazioTitolo = new Region();
+        HBox.setHgrow(spazioTitolo, Priority.ALWAYS);
+        HBox rigaTitolo = new HBox(8, titoloLabel, spazioTitolo, pallinoEta, etaLabel);
+        rigaTitolo.setAlignment(Pos.CENTER_LEFT);
 
         dettagliFilmLabel.getStyleClass().add("testo-secondario");
         dettagliFilmLabel.setWrapText(true);
@@ -70,15 +89,15 @@ public class CardProiezione extends VBox {
         bottoneSecondario.setManaged(false);
         bottoneSecondario.setVisible(false);
 
-        HBox rigaInfo = new HBox(20, dataLabel, prezzoLabel, postiLabel);
+        HBox rigaInfo = new HBox(16, dataLabel, prezzoLabel, postiLabel);
         rigaInfo.setAlignment(Pos.CENTER_LEFT);
 
         Region spazio = new Region();
         HBox.setHgrow(spazio, Priority.ALWAYS);
-        HBox rigaAzioni = new HBox(10, spazio, bottoneSecondario, bottonePrincipale);
+        HBox rigaAzioni = new HBox(8, spazio, bottoneSecondario, bottonePrincipale);
         rigaAzioni.setAlignment(Pos.CENTER_RIGHT);
 
-        getChildren().addAll(titoloLabel, dettagliFilmLabel, rigaInfo, rigaAzioni);
+        getChildren().addAll(rigaTitolo, dettagliFilmLabel, rigaInfo, rigaAzioni);
     }
 
     /*
@@ -95,12 +114,14 @@ public class CardProiezione extends VBox {
 
         titoloLabel.setText(film.getTitolo());
 
+        // Pallino del limite d'età (semaforo) + valore numerico.
+        impostaPallinoEta(film.getEtaMinima());
+
         dettagliFilmLabel.setText(
                 film.getGenere()
                         + "  -  " + film.getRegista()
                         + "  -  " + film.getAnno()
                         + "  -  " + film.getDurataMinuti() + " min"
-                        + "  -  VM" + film.getEtaMinima()
         );
 
         dataLabel.setText(p.getDataOra().format(FORMATO_DATA));
@@ -121,6 +142,23 @@ public class CardProiezione extends VBox {
         } else {
             bottonePrincipale.setText("Prenota");
         }
+    }
+
+    // Colora il pallino in base alla fascia d'età e mostra il valore (es. "VM13").
+    private void impostaPallinoEta(int etaMinima) {
+        FasciaEta.Fascia fascia = FasciaEta.fasciaPerEta(etaMinima);
+        pallinoEta.getStyleClass().setAll("pallino-eta", fascia.getClasseCss());
+        etaLabel.setText("VM" + etaMinima);
+        Tooltip.install(pallinoEta, new Tooltip("Vietato ai minori di " + etaMinima + " anni"));
+    }
+
+    /*
+     Blocca l'azione di prenotazione: disabilita il bottone principale e mostra il
+     motivo come tooltip. Usato quando l'utente non ha l'età minima per il film.
+     */
+    public void bloccaPrenotazione(String motivo) {
+        bottonePrincipale.setDisable(true);
+        Tooltip.install(bottonePrincipale, new Tooltip(motivo));
     }
 
     /*
