@@ -92,6 +92,76 @@
     -fx-background-color: -fx-text-muted;
 }
 
+/* ComboBox a tema scuro che usa la classe condivisa .campo-testo. L'obiettivo e' un
+   UNICO riquadro (quello di .campo-testo), con l'editor/cella interni trasparenti, e una
+   tendina (popup) interamente scura. */
+.campo-testo.combo-box {
+    -fx-padding: 0; /* il padding lo gestiscono editor e cella interni */
+}
+
+/* Cella mostrata quando il ComboBox NON e' editabile (es. selettore orario). */
+.campo-testo.combo-box .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-main;
+    -fx-padding: 10px;
+}
+
+/* Editor interno del ComboBox editabile (es. titolo film): nessun bordo/sfondo propri,
+   cosi' resta visibile solo il riquadro esterno di .campo-testo. */
+.campo-testo.combo-box .text-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-main;
+    -fx-prompt-text-fill: -fx-text-muted;
+    -fx-border-color: transparent;
+    -fx-background-radius: 0;
+    -fx-padding: 10px;
+}
+
+.campo-testo.combo-box .text-field:focused {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+/* Freccia del ComboBox. */
+.campo-testo.combo-box .arrow-button {
+    -fx-background-color: transparent;
+}
+
+.campo-testo.combo-box .arrow-button .arrow {
+    -fx-background-color: -fx-text-muted;
+}
+
+/* Tendina (popup) del ComboBox: sfondo scuro, bordo discreto. */
+.campo-testo.combo-box .combo-box-popup .list-view,
+.combo-box-popup .list-view {
+    -fx-background-color: -fx-surface-color;
+    -fx-border-color: #404040;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+}
+
+/* Voci della tendina. */
+.combo-box-popup .list-view .list-cell {
+    -fx-background-color: -fx-surface-color;
+    -fx-text-fill: -fx-text-main;
+    -fx-padding: 8px 12px;
+}
+
+.combo-box-popup .list-view .list-cell:filled:hover {
+    -fx-background-color: -fx-bg-color;
+    -fx-text-fill: -fx-primary-color;
+}
+
+.combo-box-popup .list-view .list-cell:filled:selected {
+    -fx-background-color: -fx-bg-color;
+    -fx-text-fill: -fx-primary-color;
+}
+
+/* ComboBox disabilitato (es. orario prima di scegliere film/data): aspetto attenuato. */
+.campo-testo.combo-box:disabled {
+    -fx-opacity: 0.55;
+}
+
 .bottone-bianco {
     -fx-font-family: "Plus Jakarta Sans", "Segoe UI", Helvetica, Arial, sans-serif;
     -fx-background-color: -fx-text-main;
@@ -347,14 +417,42 @@
     -fx-text-fill: -fx-primary-color;
 }
 
-/* Etichetta del ruolo in basso a sinistra nel menu laterale: discreta ed elegante. */
+/* Divisore (Separator) usato dentro il menu laterale, a tutta larghezza del pannello. */
+.divisore-menu .line {
+    -fx-border-color: #404040;
+    -fx-border-width: 0.5px;
+}
+
+.divisore-menu {
+    -fx-padding: 6px 0 6px 0;
+}
+
+/* Bottone per collassare/espandere il menu laterale ("<" / ">"). */
+.bottone-collassa {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-main;
+    -fx-border-color: #404040;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 4px 10px;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-min-width: 32px;
+}
+
+.bottone-collassa:hover {
+    -fx-border-color: -fx-primary-color;
+    -fx-text-fill: -fx-primary-color;
+}
+
+/* Etichetta del ruolo in fondo al menu laterale, centrata. Il divisore sopra di essa
+   è ora un Separator a tutta larghezza (.divisore-menu), quindi qui niente bordo. */
 .etichetta-ruolo {
     -fx-text-fill: -fx-text-muted;
     -fx-font-size: 11px;
     -fx-font-weight: bold;
-    -fx-padding: 8px 4px 0 4px;
-    -fx-border-color: #404040 transparent transparent transparent;
-    -fx-border-width: 0.5px 0 0 0;
+    -fx-padding: 4px 4px 0 4px;
 }
 
 /* Area scrollabile dei risultati: trasparente, senza bordo di default. */
@@ -365,6 +463,77 @@
 }
 
 .area-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* ============================================================
+   Barra di scorrimento (scrollbar) coerente col tema scuro.
+   Si applica a tutte le ScrollBar dell'app (ScrollPane, ListView,
+   TextArea, ecc.). Track scuro, cursore (thumb) grigio che diventa
+   giallo primario al passaggio del mouse; frecce rimosse per un
+   aspetto moderno e pulito.
+   ============================================================ */
+
+/* Binario (track) e contorno della barra: trasparenti per fondersi
+   con lo sfondo. */
+.scroll-bar {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8px;
+}
+
+.scroll-bar > .track {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-bar > .track-background {
+    -fx-background-color: transparent;
+}
+
+/* Spessore della barra verticale e orizzontale. */
+.scroll-bar:vertical {
+    -fx-pref-width: 12px;
+    -fx-padding: 0 2px 0 2px;
+}
+
+.scroll-bar:horizontal {
+    -fx-pref-height: 12px;
+    -fx-padding: 2px 0 2px 0;
+}
+
+/* Cursore trascinabile (thumb). */
+.scroll-bar > .thumb {
+    -fx-background-color: #4a4a4a;
+    -fx-background-radius: 8px;
+    -fx-background-insets: 0;
+}
+
+.scroll-bar > .thumb:hover {
+    -fx-background-color: -fx-text-muted;
+}
+
+.scroll-bar > .thumb:pressed {
+    -fx-background-color: -fx-primary-color;
+}
+
+/* Rimuove i pulsanti freccia alle estremita' della barra. */
+.scroll-bar > .increment-button,
+.scroll-bar > .decrement-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-bar > .increment-button > .increment-arrow,
+.scroll-bar > .decrement-button > .decrement-arrow {
+    -fx-background-color: transparent;
+    -fx-shape: " ";
+    -fx-padding: 0;
+}
+
+/* Angolo fra barra verticale e orizzontale (quando entrambe presenti). */
+.scroll-pane > .corner,
+.scroll-bar .corner {
     -fx-background-color: transparent;
 }
 

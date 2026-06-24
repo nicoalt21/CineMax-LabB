@@ -6,10 +6,12 @@ package cinemax.client.controller.shared;
 import cinemax.client.gui.model.Impostazioni;
 import cinemax.client.gui.navigation.GestoreScene;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 /*
@@ -53,6 +55,10 @@ public class ImpostazioniController extends DashboardBaseController {
         campoRisultatiPerPagina.getStyleClass().add("campo-testo");
         campoRisultatiPerPagina.setMaxWidth(120);
 
+        // Etichetta e campo sulla stessa riga (in linea).
+        HBox rigaRisultati = new HBox(12, etichetta, campoRisultatiPerPagina);
+        rigaRisultati.setAlignment(Pos.CENTER_LEFT);
+
         Button btnSalva = new Button("Salva");
         btnSalva.getStyleClass().add("bottone-primario");
         btnSalva.setOnAction(e -> salva());
@@ -61,7 +67,7 @@ public class ImpostazioniController extends DashboardBaseController {
         labelMessaggio.setManaged(false);
         labelMessaggio.setVisible(false);
 
-        modulo.getChildren().addAll(etichetta, campoRisultatiPerPagina, btnSalva, labelMessaggio);
+        modulo.getChildren().addAll(rigaRisultati, btnSalva, labelMessaggio);
         radice.getChildren().addAll(titolo, modulo);
 
         aggiornaDati();

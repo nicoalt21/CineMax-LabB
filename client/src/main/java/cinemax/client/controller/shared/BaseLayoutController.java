@@ -5,6 +5,8 @@ import cinemax.client.controller.cliente.DashboardClienteController;
 import cinemax.client.controller.cliente.MiePrenotazioniController;
 import cinemax.client.controller.bigliettaio.ProiezioniOggiController;
 import cinemax.client.controller.bigliettaio.VerificaBigliettoController;
+import cinemax.client.controller.proiezionista.CreaProiezioneController;
+import cinemax.client.controller.proiezionista.CreaFilmController;
 import cinemax.common.model.Utente;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -13,6 +15,8 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
+import javafx.geometry.Orientation;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -41,6 +45,13 @@ public class BaseLayoutController {
     private final BorderPane contenitorePrincipale = new BorderPane();
     private final VBox menuLaterale = new VBox(10);
     private final Label labelBenvenuto = new Label();
+
+    // Contenitore di sinistra (pannello menu) e parte collassabile (le voci di menu).
+    private final HBox contenitoreSinistro = new HBox();
+    private final HBox pannelloMenu = new HBox();
+    private final VBox contenutoVoci = new VBox(10);
+    private final Button btnCollassaMenu = new Button("<");
+    private boolean menuCollassato = false;
 
     // Overlay di conferma (nascosto finché non serve).
     private final StackPane overlayConferma = new StackPane();
@@ -87,13 +98,31 @@ public class BaseLayoutController {
 
         header.getChildren().addAll(logo, labelBenvenuto, spazio, btnAuth);
 
-        // Menu Laterale
-        menuLaterale.setPadding(new Insets(20));
+        // Bottone collassa/espandi: sta in alto a destra DENTRO il pannello laterale.
+        btnCollassaMenu.getStyleClass().add("bottone-collassa");
+        btnCollassaMenu.setOnAction(e -> toggleMenuLaterale());
+        Region spintaToggle = new Region();
+        HBox.setHgrow(spintaToggle, Priority.ALWAYS);
+        HBox rigaToggle = new HBox(spintaToggle, btnCollassaMenu);
+        rigaToggle.setAlignment(Pos.TOP_RIGHT);
+
+        // Menu Laterale (senza contorno): in cima la riga col bottone di chiusura
+        // (sempre visibile), poi il contenitore collassabile con le voci di menu.
+        menuLaterale.setPadding(new Insets(10, 12, 20, 12));
         menuLaterale.setAlignment(Pos.TOP_LEFT);
         menuLaterale.setPrefWidth(200);
+        HBox.setHgrow(menuLaterale, Priority.ALWAYS);
+        VBox.setVgrow(contenutoVoci, Priority.ALWAYS);
+        menuLaterale.getChildren().addAll(rigaToggle, contenutoVoci);
+
+        // Pannello collassabile: contiene solo il menu (nessun divisore/contorno).
+        pannelloMenu.getChildren().add(menuLaterale);
+
+        contenitoreSinistro.setAlignment(Pos.TOP_LEFT);
+        contenitoreSinistro.getChildren().add(pannelloMenu);
 
         contenitorePrincipale.setTop(header);
-        contenitorePrincipale.setLeft(menuLaterale);
+        contenitorePrincipale.setLeft(contenitoreSinistro);
 
         // Il layout vero sta sotto; l'overlay (aggiunto dopo) sta sopra.
         radice.getChildren().add(contenitorePrincipale);
@@ -239,7 +268,7 @@ public class BaseLayoutController {
     }
 
     private void generaMenuLaterale() {
-        menuLaterale.getChildren().clear();
+        contenutoVoci.getChildren().clear();
 
         // Voci comuni e specifiche per ruolo. Il Guest vede il menu del Cliente, con le
         // voci riservate attenuate (registraNodoRiservato).
@@ -263,9 +292,15 @@ public class BaseLayoutController {
             vociAlto.getChildren().addAll(voceCerca, vocePrenotazioni, voceProfilo, voceImpostazioni);
 
         } else if (utenteLoggato.getRuolo() == cinemax.common.model.Ruolo.PROIEZIONISTA) {
-            // PROIEZIONISTA: gestione proiezioni (cerca e modifica), profilo, impostazioni.
+            // PROIEZIONISTA: gestione proiezioni, crea proiezione, crea film, profilo, impostazioni.
             Button voceGestione = costruisciVoceMenu("Gestione proiezioni");
             voceGestione.setOnAction(e -> mostraGestioneProiezioni());
+
+            Button voceCrea = costruisciVoceMenu("Crea proiezione");
+            voceCrea.setOnAction(e -> mostraCreaProiezione());
+
+            Button voceCreaFilm = costruisciVoceMenu("Crea film");
+            voceCreaFilm.setOnAction(e -> mostraCreaFilm());
 
             Button voceProfilo = costruisciVoceMenu("Profilo");
             voceProfilo.setOnAction(e -> mostraProfilo());
@@ -273,7 +308,7 @@ public class BaseLayoutController {
             Button voceImpostazioni = costruisciVoceMenu("Impostazioni");
             voceImpostazioni.setOnAction(e -> mostraImpostazioni());
 
-            vociAlto.getChildren().addAll(voceGestione, voceProfilo, voceImpostazioni);
+            vociAlto.getChildren().addAll(voceGestione, voceCrea, voceCreaFilm, voceProfilo, voceImpostazioni);
 
         } else {
             // BIGLIETTAIO: proiezioni di oggi, verifica biglietto, profilo, impostazioni.
@@ -296,12 +331,26 @@ public class BaseLayoutController {
         Region spinta = new Region();
         VBox.setVgrow(spinta, Priority.ALWAYS);
 
-        // Etichetta del ruolo in basso a sinistra: dettaglio che aiuta a capire con che
-        // utente si è loggati.
+        // Etichetta del ruolo in fondo, centrata nel pannello laterale, preceduta da un
+        // divisore orizzontale a tutta larghezza del pannello.
+        Separator divisoreRuolo = new Separator(Orientation.HORIZONTAL);
+        divisoreRuolo.getStyleClass().add("divisore-menu");
+
         Label etichettaRuolo = new Label(descrizioneRuolo());
         etichettaRuolo.getStyleClass().add("etichetta-ruolo");
+        etichettaRuolo.setMaxWidth(Double.MAX_VALUE);
+        etichettaRuolo.setAlignment(Pos.CENTER);
 
-        menuLaterale.getChildren().addAll(vociAlto, spinta, etichettaRuolo);
+        contenutoVoci.getChildren().addAll(vociAlto, spinta, divisoreRuolo, etichettaRuolo);
+    }
+
+    // Collassa o espande il menu laterale. Si nasconde solo il contenitore delle voci,
+    // mentre il bottone in alto a destra resta visibile e passa da "<" a ">".
+    private void toggleMenuLaterale() {
+        menuCollassato = !menuCollassato;
+        contenutoVoci.setVisible(!menuCollassato);
+        contenutoVoci.setManaged(!menuCollassato);
+        btnCollassaMenu.setText(menuCollassato ? ">" : "<");
     }
 
     // Testo del ruolo mostrato in basso (Guest incluso).
@@ -338,6 +387,33 @@ public class BaseLayoutController {
     // e bottone "Modifica" sulle card).
     private void mostraGestioneProiezioni() {
         mostraDashboardRicerca();
+    }
+
+    // Carica la schermata "Crea proiezione" del proiezionista.
+    private void mostraCreaProiezione() {
+        CreaProiezioneController crea = new CreaProiezioneController(gestoreScene);
+        crea.setUtente(utenteLoggato);
+        crea.inizializza();
+        impostaContenutoCentrale(crea.getRoot());
+    }
+
+    // Carica la schermata "Crea film" del proiezionista. Riceve this come callback per
+    // poter mostrare, dopo la creazione, la richiesta "vuoi creare anche una proiezione?".
+    private void mostraCreaFilm() {
+        CreaFilmController creaFilm = new CreaFilmController(gestoreScene, this);
+        creaFilm.setUtente(utenteLoggato);
+        creaFilm.inizializza();
+        impostaContenutoCentrale(creaFilm.getRoot());
+    }
+
+    // Chiamato dal CreaFilmController dopo aver creato un film: notifica l'esito e
+    // propone di creare subito una proiezione per quel film.
+    public void notificaFilmCreato(String titoloFilm) {
+        mostraScelta(
+                "Film \"" + titoloFilm + "\" creato con successo.\nVuoi creare anche una proiezione per questo film?",
+                "Sì, crea proiezione", "No, grazie",
+                this::mostraCreaProiezione,
+                null);
     }
 
     // Carica la schermata "Proiezioni di oggi" del bigliettaio.

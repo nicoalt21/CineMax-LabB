@@ -3,6 +3,7 @@
  */
 package cinemax.client.controller.shared;
 
+import cinemax.client.gui.component.CampoConEtichetta;
 import cinemax.client.gui.navigation.GestoreScene;
 import cinemax.common.model.Utente;
 import cinemax.common.util.Cifrario;
@@ -15,7 +16,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 /*
@@ -32,22 +35,39 @@ import javafx.scene.layout.VBox;
  finti). Quando il team aggiungerà un metodo come ServizioAutenticazione.modificaUtente,
  basterà chiamarlo nel punto segnato più sotto.
  */
-public class ProfiloController extends DashboardBaseController {
+public class
+ProfiloController extends DashboardBaseController {
 
     private final GestoreScene gestoreScene;
 
     private final VBox radice = new VBox(15);
 
-    private final TextField campoNome = new TextField();
-    private final TextField campoCognome = new TextField();
-    private final DatePicker campoDataNascita = new DatePicker();
-    private final TextField campoDomicilio = new TextField();
-    private final PasswordField campoNuovaPassword = new PasswordField();
-    private final PasswordField campoPasswordAttuale = new PasswordField();
+    // Larghezza dei campi e del blocco a due colonne, come nella schermata di registrazione.
+    private static final double LARGHEZZA_CAMPO = 260;
+    private static final double LARGHEZZA_GRIGLIA = LARGHEZZA_CAMPO * 2 + 24;
+
+    private final CampoConEtichetta campoNome =
+            new CampoConEtichetta("Nome", true, nuovoTextField("Nome"), LARGHEZZA_CAMPO);
+    private final CampoConEtichetta campoCognome =
+            new CampoConEtichetta("Cognome", true, nuovoTextField("Cognome"), LARGHEZZA_CAMPO);
+    private final CampoConEtichetta campoDataNascita =
+            new CampoConEtichetta("Data di nascita", false, new DatePicker(), LARGHEZZA_CAMPO);
+    private final CampoConEtichetta campoDomicilio =
+            new CampoConEtichetta("Domicilio", true, nuovoTextField("Domicilio"), LARGHEZZA_CAMPO);
+    private final CampoConEtichetta campoNuovaPassword =
+            new CampoConEtichetta("Nuova password (vuoto = invariata)", false, new PasswordField(), LARGHEZZA_CAMPO);
+    private final CampoConEtichetta campoPasswordAttuale =
+            new CampoConEtichetta("Password attuale", true, new PasswordField(), LARGHEZZA_CAMPO);
     private final Label labelMessaggio = new Label();
 
     public ProfiloController(GestoreScene gestoreScene) {
         this.gestoreScene = gestoreScene;
+    }
+
+    private static TextField nuovoTextField(String prompt) {
+        TextField tf = new TextField();
+        tf.setPromptText(prompt);
+        return tf;
     }
 
     @Override
@@ -65,38 +85,32 @@ public class ProfiloController extends DashboardBaseController {
         titolo.setStyle("-fx-font-size: 26px;");
 
         VBox modulo = new VBox(12);
-        modulo.setMaxWidth(420);
+        modulo.setAlignment(Pos.CENTER);
+        modulo.setMaxWidth(LARGHEZZA_GRIGLIA);
 
         // Username e ruolo: mostrati ma non modificabili.
         Label infoAccount = new Label("Username: " + utenteLoggato.getUsername()
                 + "   |   Ruolo: " + etichettaRuolo(utenteLoggato));
         infoAccount.getStyleClass().add("testo-secondario");
+        infoAccount.setMaxWidth(LARGHEZZA_GRIGLIA);
 
-        modulo.getChildren().addAll(
-                infoAccount,
-                campo("Nome", campoNome),
-                campo("Cognome", campoCognome),
-                campo("Data di nascita", campoDataNascita),
-                campo("Domicilio", campoDomicilio),
-                campo("Nuova password (lascia vuoto per non cambiarla)", campoNuovaPassword)
-        );
-
-        // Separatore logico: conferma con password attuale.
-        Label etichettaConferma = new Label("Per salvare, inserisci la password attuale:");
-        etichettaConferma.getStyleClass().add("etichetta-campo");
-        campoPasswordAttuale.setPromptText("Password attuale");
-        campoPasswordAttuale.getStyleClass().add("campo-testo");
-        campoPasswordAttuale.setMaxWidth(420);
-
-        Button btnSalva = new Button("Salva modifiche");
-        btnSalva.getStyleClass().add("bottone-primario");
-        btnSalva.setOnAction(e -> salva());
-
-        labelMessaggio.getStyleClass().add("campo-errore");
+        labelMessaggio.getStyleClass().add("errore-generale");
+        labelMessaggio.setWrapText(true);
+        labelMessaggio.setMaxWidth(LARGHEZZA_GRIGLIA);
         labelMessaggio.setManaged(false);
         labelMessaggio.setVisible(false);
 
-        modulo.getChildren().addAll(etichettaConferma, campoPasswordAttuale, btnSalva, labelMessaggio);
+        Button btnSalva = new Button("Salva modifiche");
+        btnSalva.setMaxWidth(LARGHEZZA_GRIGLIA);
+        btnSalva.getStyleClass().add("bottone-primario");
+        btnSalva.setOnAction(e -> salva());
+
+        modulo.getChildren().addAll(
+                infoAccount,
+                costruisciGriglia(),
+                labelMessaggio,
+                btnSalva
+        );
 
         ScrollPane scroll = new ScrollPane(modulo);
         scroll.setFitToWidth(true);
@@ -108,47 +122,77 @@ public class ProfiloController extends DashboardBaseController {
         aggiornaDati();
     }
 
+    // Griglia a due colonne speculare alla schermata di registrazione.
+    private GridPane costruisciGriglia() {
+        GridPane griglia = new GridPane();
+        griglia.setAlignment(Pos.CENTER);
+        griglia.setHgap(24);
+        griglia.setVgap(12);
+        griglia.setMaxWidth(LARGHEZZA_GRIGLIA);
+
+        griglia.add(campoNome, 0, 0);
+        griglia.add(campoCognome, 1, 0);
+
+        griglia.add(campoDomicilio, 0, 1);
+        griglia.add(campoDataNascita, 1, 1);
+
+        Region stacco = new Region();
+        stacco.setMinHeight(8);
+        griglia.add(stacco, 0, 2);
+
+        griglia.add(campoNuovaPassword, 0, 3);
+        griglia.add(campoPasswordAttuale, 1, 3);
+
+        return griglia;
+    }
+
     @Override
     public void aggiornaDati() {
         // Precompila i campi con i dati attuali dell'utente.
-        campoNome.setText(utenteLoggato.getNome());
-        campoCognome.setText(utenteLoggato.getCognome());
-        campoDataNascita.setValue(utenteLoggato.getDataNascita());
-        campoDomicilio.setText(utenteLoggato.getLuogoDomicilio());
-        campoNuovaPassword.clear();
-        campoPasswordAttuale.clear();
+        ((TextField) campoNome.getControllo()).setText(utenteLoggato.getNome());
+        ((TextField) campoCognome.getControllo()).setText(utenteLoggato.getCognome());
+        ((DatePicker) campoDataNascita.getControllo()).setValue(utenteLoggato.getDataNascita());
+        ((TextField) campoDomicilio.getControllo()).setText(utenteLoggato.getLuogoDomicilio());
+        ((PasswordField) campoNuovaPassword.getControllo()).clear();
+        ((PasswordField) campoPasswordAttuale.getControllo()).clear();
         pulisciMessaggio();
     }
 
     private void salva() {
         pulisciMessaggio();
+        pulisciErroriCampi();
 
         // 1) Verifica della password attuale (obbligatoria per confermare).
-        String passwordAttuale = campoPasswordAttuale.getText();
+        String passwordAttuale = campoPasswordAttuale.getTesto();
         if (passwordAttuale == null || passwordAttuale.isBlank()) {
+            campoPasswordAttuale.evidenziaErrore();
             mostraErrore("Inserisci la password attuale per confermare.");
             return;
         }
         String hashInserito = Cifrario.cifraPassword(passwordAttuale);
         if (!hashInserito.equals(utenteLoggato.getPasswordCifrata())) {
+            campoPasswordAttuale.evidenziaErrore();
             mostraErrore("Password attuale non corretta.");
             return;
         }
 
         // 2) Validazione minima dei campi.
-        if (campoNome.getText().isBlank() || campoCognome.getText().isBlank()
-                || campoDomicilio.getText().isBlank()) {
+        if (campoNome.getTesto().isBlank() || campoCognome.getTesto().isBlank()
+                || campoDomicilio.getTesto().isBlank()) {
+            if (campoNome.getTesto().isBlank()) campoNome.evidenziaErrore();
+            if (campoCognome.getTesto().isBlank()) campoCognome.evidenziaErrore();
+            if (campoDomicilio.getTesto().isBlank()) campoDomicilio.evidenziaErrore();
             mostraErrore("Nome, cognome e domicilio non possono essere vuoti.");
             return;
         }
 
         // 3) Applico le modifiche all'oggetto Utente.
-        utenteLoggato.setNome(campoNome.getText().trim());
-        utenteLoggato.setCognome(campoCognome.getText().trim());
-        utenteLoggato.setDataNascita(campoDataNascita.getValue());
-        utenteLoggato.setLuogoDomicilio(campoDomicilio.getText().trim());
-        if (!campoNuovaPassword.getText().isBlank()) {
-            utenteLoggato.setPasswordCifrata(Cifrario.cifraPassword(campoNuovaPassword.getText()));
+        utenteLoggato.setNome(campoNome.getTesto().trim());
+        utenteLoggato.setCognome(campoCognome.getTesto().trim());
+        utenteLoggato.setDataNascita(((DatePicker) campoDataNascita.getControllo()).getValue());
+        utenteLoggato.setLuogoDomicilio(campoDomicilio.getTesto().trim());
+        if (!campoNuovaPassword.getTesto().isBlank()) {
+            utenteLoggato.setPasswordCifrata(Cifrario.cifraPassword(campoNuovaPassword.getTesto()));
         }
 
         // TODO (quando ci sarà la presa remota): inviare l'utente aggiornato al server,
@@ -157,19 +201,17 @@ public class ProfiloController extends DashboardBaseController {
         // Per ora, con i servizi finti, la modifica in memoria è già effettiva.
 
         mostraSuccesso("Modifiche salvate.");
-        campoNuovaPassword.clear();
-        campoPasswordAttuale.clear();
+        ((PasswordField) campoNuovaPassword.getControllo()).clear();
+        ((PasswordField) campoPasswordAttuale.getControllo()).clear();
     }
 
-    // Riga "etichetta sopra, campo sotto" a larghezza fissa.
-    private VBox campo(String etichetta, javafx.scene.control.Control controllo) {
-        VBox colonna = new VBox(4);
-        Label label = new Label(etichetta);
-        label.getStyleClass().add("etichetta-campo");
-        controllo.getStyleClass().add("campo-testo");
-        controllo.setMaxWidth(420);
-        colonna.getChildren().addAll(label, controllo);
-        return colonna;
+    private void pulisciErroriCampi() {
+        campoNome.pulisciErrore();
+        campoCognome.pulisciErrore();
+        campoDomicilio.pulisciErrore();
+        campoDataNascita.pulisciErrore();
+        campoNuovaPassword.pulisciErrore();
+        campoPasswordAttuale.pulisciErrore();
     }
 
     private String etichettaRuolo(Utente u) {

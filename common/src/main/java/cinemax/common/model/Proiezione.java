@@ -62,4 +62,19 @@ public class Proiezione implements Serializable {
     public void setPostiLiberi(int postiLiberi) {
         this.postiLiberi = postiLiberi;
     }
+
+    /*
+     Istante di fine proiezione, calcolato sommando alla data/ora di inizio la durata del
+     film associato. La durata non e' un campo proprio della Proiezione: vive sul Film. Se
+     il film non e' impostato restituisce la sola data/ora di inizio.
+     */
+    public LocalDateTime getDataOraFine() {
+        if (dataOra == null) {
+            return null;
+        }
+        if (film == null) {
+            return dataOra;
+        }
+        return dataOra.plusMinutes(film.getDurataMinuti());
+    }
 }
