@@ -2,6 +2,7 @@ package cinemax.common.model;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.Period;
 
 /**
  * Rappresenta un utente del sistema CineMax.
@@ -64,4 +65,9 @@ public class Utente implements Serializable {
 
     public Ruolo getRuolo() { return ruolo; }
     public void setRuolo(Ruolo ruolo) { this.ruolo = ruolo; }
+
+    public int calcolaEta() {
+        if (dataNascita == null) return -1;
+        return Period.between(dataNascita, LocalDate.now()).getYears();
+    }
 }
