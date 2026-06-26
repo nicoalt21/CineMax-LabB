@@ -1,5 +1,6 @@
 package cinemax.server.persistence;
 
+import cinemax.common.model.CriteriRicercaPrenotazione;
 import cinemax.common.model.Film;
 import cinemax.common.model.Prenotazione;
 import cinemax.common.model.Proiezione;
@@ -12,67 +13,57 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * DAO per la gestione delle prenotazioni nel database.
+ */
 public class PrenotazioneDAO {
 
     private static final int CAPIENZA_MASSIMA = 200;
 
-    private int calcolaPostiLiberi(LocalDateTime dataOra) throws SQLException {
-
-        String sql = "SELECT COALESCE(SUM(numero_posti), 0) FROM prenotazioni WHERE data_ora = ?";
-
-        try (Connection conn = DBconnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setTimestamp(1, Timestamp.valueOf(dataOra));
-
-            try (ResultSet rs = ps.executeQuery()) {
-                rs.next();
-                return CAPIENZA_MASSIMA - rs.getInt(1);
-            }
-        }
-    }
-
-    public Prenotazione ottieniPrenotazione(String codice) throws SQLException {
-
-        String sql = "SELECT pr.codice_univoco, pr.numero_posti, " +
-                        "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +
-                        "p.data_ora, p.prezzo_biglietto, " +
-                        "f.id_film, f.titolo, f.genere, f.regista, f.anno, f.durata_minuti, f.eta_minima, " +
-                        "(" + CAPIENZA_MASSIMA + " - COALESCE((SELECT SUM(x.numero_posti) FROM prenotazioni x " +
-                        "WHERE x.data_ora = p.data_ora), 0)) AS posti_liberi " +
-                        "FROM prenotazioni pr " +
-                        "JOIN utenti     u ON pr.username_cliente = u.username " +
-                        "JOIN proiezioni p ON pr.data_ora         = p.data_ora " +
-                        "JOIN film       f ON p.id_film           = f.id_film " +
-                        "WHERE pr.codice_univoco = ?";
-
-        try (Connection conn = DBconnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, codice);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return creaPrenotazione(rs);
-                return null;
-            }
-        }
-    }
-
-    public String creaPrenotazione(Utente utente, LocalDateTime dataOraProiezione, int numeroBiglietti) throws SQLException {
-
+    /**
+     * Crea una nuova prenotazione in modo atomico.
+     * Usa transazione con FOR UPDATE per prevenire overbooking concorrente.
+     *
+     * @param dataOraProiezione data_ora della proiezione
+     * @param usernameCliente   username del cliente
+     * @param numeroBiglietti   numero di biglietti richiesti
+     * @return prenotazione creata con codice univoco, null se fallisce
+     * @throws SQLException in caso di errore DB
+     */
+    public Prenotazione creaPrenotazione(LocalDateTime dataOraProiezione,
+                                         String usernameCliente,
+                                         int numeroBiglietti) throws SQLException {
         if (numeroBiglietti <= 0) return null;
 
+        UtenteDAO utenteDAO = new UtenteDAO();
+        Utente utente = utenteDAO.trovaPerId(usernameCliente);
+        if (utente == null) return null;
+
+        String codice = creaPrenotazioneInterna(utente, dataOraProiezione, numeroBiglietti);
+        if (codice == null) return null;
+
+        return ottieniPrenotazione(codice);
+    }
+
+    /**
+     * Logica interna di creazione prenotazione con transazione.
+     *
+     * @param utente            utente che prenota
+     * @param dataOraProiezione data_ora della proiezione
+     * @param numeroBiglietti   numero di biglietti
+     * @return codice univoco generato, null se fallisce
+     * @throws SQLException in caso di errore DB
+     */
+    private String creaPrenotazioneInterna(Utente utente, LocalDateTime dataOraProiezione,
+                                           int numeroBiglietti) throws SQLException {
         try (Connection conn = DBconnection.getConnection()) {
-
             conn.setAutoCommit(false);
-
             try {
-
                 String lockSql = "SELECT p.data_ora, f.eta_minima, " +
-                                "COALESCE((SELECT SUM(pr.numero_posti) FROM prenotazioni pr " +
-                                "WHERE pr.data_ora = p.data_ora), 0) AS posti_occupati " +
-                                "FROM proiezioni p JOIN film f ON p.id_film = f.id_film " +
-                                "WHERE p.data_ora = ? FOR UPDATE";
+                        "COALESCE((SELECT SUM(pr.numero_posti) FROM prenotazioni pr " +
+                        "WHERE pr.data_ora = p.data_ora), 0) AS posti_occupati " +
+                        "FROM proiezioni p JOIN film f ON p.id_film = f.id_film " +
+                        "WHERE p.data_ora = ? FOR UPDATE";
 
                 int postiOccupati;
                 int etaMinima;
@@ -81,9 +72,7 @@ public class PrenotazioneDAO {
                     ps.setTimestamp(1, Timestamp.valueOf(dataOraProiezione));
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) return null;
-
                         if (!dataOraProiezione.isAfter(LocalDateTime.now())) return null;
-
                         postiOccupati = rs.getInt("posti_occupati");
                         etaMinima     = rs.getInt("eta_minima");
                     }
@@ -97,8 +86,9 @@ public class PrenotazioneDAO {
 
                 String codice = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
-                String insertSql = "INSERT INTO prenotazioni (codice_univoco, username_cliente, data_ora, numero_posti) " +
-                                "VALUES (?, ?, ?, ?)";
+                String insertSql = "INSERT INTO prenotazioni " +
+                        "(codice_univoco, username_cliente, data_ora, numero_posti) " +
+                        "VALUES (?, ?, ?, ?)";
 
                 try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
                     ps.setString   (1, codice);
@@ -120,113 +110,45 @@ public class PrenotazioneDAO {
         }
     }
 
-    public boolean modificaPrenotazione(String codice, LocalDateTime nuovaDataOra) throws SQLException {
-
-        Prenotazione daModificare = ottieniPrenotazione(codice);
-        if (daModificare == null) return false;
-
-        LocalDateTime ora = LocalDateTime.now();
-
-        if (!daModificare.getProiezione().getDataOra().isAfter(ora)) return false;
-        if (!nuovaDataOra.isAfter(ora)) return false;
-
-        if (daModificare.getProiezione().getDataOra().equals(nuovaDataOra)) return false;
-
-        int postiLiberi = calcolaPostiLiberi(nuovaDataOra);
-        if (daModificare.getNumeroBiglietti() > postiLiberi) return false;
-
-        String sql = "UPDATE prenotazioni SET data_ora = ? WHERE codice_univoco = ?";
-
-        try (Connection conn = DBconnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setTimestamp(1, Timestamp.valueOf(nuovaDataOra));
-            ps.setString   (2, codice);
-            ps.executeUpdate();
-            return true;
-        }
-    }
-
-    public boolean eliminaPrenotazione(String codice) throws SQLException {
-
-        Prenotazione p = ottieniPrenotazione(codice);
-        if (p == null) return false;
-
-        if (!p.getProiezione().getDataOra().isAfter(LocalDateTime.now())) return false;
-
-        String sql = "DELETE FROM prenotazioni WHERE codice_univoco = ?";
+    /**
+     * Recupera una prenotazione per codice univoco.
+     *
+     * @param codice codice della prenotazione
+     * @return prenotazione trovata, null se non esiste
+     * @throws SQLException in caso di errore DB
+     */
+    public Prenotazione ottieniPrenotazione(String codice) throws SQLException {
+        String sql = "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
+                "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +
+                "p.data_ora, p.prezzo_biglietto, " +
+                "f.id_film, f.titolo, f.genere, f.regista, f.anno, f.durata_minuti, f.eta_minima, " +
+                "(" + CAPIENZA_MASSIMA + " - COALESCE((SELECT SUM(x.numero_posti) FROM prenotazioni x " +
+                "WHERE x.data_ora = p.data_ora), 0)) AS posti_liberi " +
+                "FROM prenotazioni pr " +
+                "JOIN utenti     u ON pr.username_cliente = u.username " +
+                "JOIN proiezioni p ON pr.data_ora         = p.data_ora " +
+                "JOIN film       f ON p.id_film           = f.id_film " +
+                "WHERE pr.codice_univoco = ?";
 
         try (Connection conn = DBconnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, codice);
-            ps.executeUpdate();
-            return true;
-        }
-    }
-
-    public List<Prenotazione> cercaPrenotazione(String codice, String nomeCliente,
-                                                String titoloFilm, LocalDateTime dataInizio,
-                                                LocalDateTime dataFine) throws SQLException {
-
-        StringBuilder sql = new StringBuilder("SELECT pr.codice_univoco, pr.numero_posti, " +
-                        "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +
-                        "p.data_ora, p.prezzo_biglietto, " +
-                        "f.id_film, f.titolo, f.genere, f.regista, f.anno, f.durata_minuti, f.eta_minima, " +
-                        "(" + CAPIENZA_MASSIMA + " - COALESCE((SELECT SUM(x.numero_posti) FROM prenotazioni x " +
-                        "WHERE x.data_ora = p.data_ora), 0)) AS posti_liberi " +
-                        "FROM prenotazioni pr " +
-                        "JOIN utenti     u ON pr.username_cliente = u.username " +
-                        "JOIN proiezioni p ON pr.data_ora         = p.data_ora " +
-                        "JOIN film       f ON p.id_film           = f.id_film " +
-                        "WHERE 1=1 "
-        );
-
-        List<Object> params = new ArrayList<>();
-
-        if (codice != null && !codice.isBlank()) {
-            sql.append("AND pr.codice_univoco = ? ");
-            params.add(codice.trim().toUpperCase());
-        }
-        if (nomeCliente != null && !nomeCliente.isBlank()) {
-            sql.append("AND (LOWER(u.nome) LIKE LOWER(?) OR LOWER(u.cognome) LIKE LOWER(?)) ");
-            params.add("%" + nomeCliente.trim() + "%");
-            params.add("%" + nomeCliente.trim() + "%");
-        }
-        if (titoloFilm != null && !titoloFilm.isBlank()) {
-            sql.append("AND LOWER(f.titolo) LIKE LOWER(?) ");
-            params.add("%" + titoloFilm.trim() + "%");
-        }
-        if (dataInizio != null) {
-            sql.append("AND p.data_ora >= ? ");
-            params.add(Timestamp.valueOf(dataInizio));
-        }
-        if (dataFine != null) {
-            sql.append("AND p.data_ora <= ? ");
-            params.add(Timestamp.valueOf(dataFine));
-        }
-
-        sql.append("ORDER BY p.data_ora");
-
-        List<Prenotazione> risultati = new ArrayList<>();
-
-        try (Connection conn = DBconnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
-            }
-
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) risultati.add(creaPrenotazione(rs));
+                if (rs.next()) return creaPrenotazione(rs);
+                return null;
             }
         }
-        return risultati;
     }
 
-    public List<Prenotazione> visualizzaPrenotazione(Utente utente) throws SQLException {
-
-        String sql = "SELECT pr.codice_univoco, pr.numero_posti, " +
+    /**
+     * Restituisce tutte le prenotazioni di un cliente.
+     *
+     * @param usernameCliente username del cliente
+     * @return lista delle prenotazioni
+     * @throws SQLException in caso di errore DB
+     */
+    public List<Prenotazione> trovaPerCliente(String usernameCliente) throws SQLException {
+        String sql = "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
                 "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +
                 "p.data_ora, p.prezzo_biglietto, " +
                 "f.id_film, f.titolo, f.genere, f.regista, f.anno, f.durata_minuti, f.eta_minima, " +
@@ -243,9 +165,7 @@ public class PrenotazioneDAO {
 
         try (Connection conn = DBconnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, utente.getUsername());
-
+            ps.setString(1, usernameCliente);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) risultati.add(creaPrenotazione(rs));
             }
@@ -253,9 +173,70 @@ public class PrenotazioneDAO {
         return risultati;
     }
 
-    public List<Prenotazione> visualizzaPrenotazioniOggi() throws SQLException {
+    /**
+     * Modifica la data di una prenotazione.
+     * Entrambe le date (vecchia e nuova) devono essere future.
+     *
+     * @param codice       codice della prenotazione
+     * @param nuovaDataOra nuova data_ora della proiezione
+     * @return true se modificata, false se vincoli violati
+     * @throws SQLException in caso di errore DB
+     */
+    public boolean modificaData(String codice, LocalDateTime nuovaDataOra) throws SQLException {
+        Prenotazione daModificare = ottieniPrenotazione(codice);
+        if (daModificare == null) return false;
 
-        String sql = "SELECT pr.codice_univoco, pr.numero_posti, " +
+        LocalDateTime ora = LocalDateTime.now();
+        if (!daModificare.getProiezione().getDataOra().isAfter(ora)) return false;
+        if (!nuovaDataOra.isAfter(ora)) return false;
+        if (daModificare.getProiezione().getDataOra().equals(nuovaDataOra)) return false;
+
+        int postiLiberi = calcolaPostiLiberi(nuovaDataOra);
+        if (daModificare.getNumeroBiglietti() > postiLiberi) return false;
+
+        String sql = "UPDATE prenotazioni SET data_ora = ? WHERE codice_univoco = ?";
+
+        try (Connection conn = DBconnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(nuovaDataOra));
+            ps.setString   (2, codice);
+            ps.executeUpdate();
+            return true;
+        }
+    }
+
+    /**
+     * Cancella una prenotazione solo se la proiezione è futura.
+     *
+     * @param codice codice della prenotazione
+     * @return true se cancellata, false se proiezione passata o non trovata
+     * @throws SQLException in caso di errore DB
+     */
+    public boolean cancella(String codice) throws SQLException {
+        Prenotazione p = ottieniPrenotazione(codice);
+        if (p == null) return false;
+        if (!p.getProiezione().getDataOra().isAfter(LocalDateTime.now())) return false;
+
+        String sql = "DELETE FROM prenotazioni WHERE codice_univoco = ?";
+
+        try (Connection conn = DBconnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, codice);
+            ps.executeUpdate();
+            return true;
+        }
+    }
+
+    /**
+     * Cerca prenotazioni per criteri combinabili.
+     *
+     * @param criteri criteri di ricerca
+     * @return lista di prenotazioni corrispondenti
+     * @throws SQLException in caso di errore DB
+     */
+    public List<Prenotazione> cerca(CriteriRicercaPrenotazione criteri) throws SQLException {
+        StringBuilder sql = new StringBuilder(
+                "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
                         "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +
                         "p.data_ora, p.prezzo_biglietto, " +
                         "f.id_film, f.titolo, f.genere, f.regista, f.anno, f.durata_minuti, f.eta_minima, " +
@@ -265,22 +246,96 @@ public class PrenotazioneDAO {
                         "JOIN utenti     u ON pr.username_cliente = u.username " +
                         "JOIN proiezioni p ON pr.data_ora         = p.data_ora " +
                         "JOIN film       f ON p.id_film           = f.id_film " +
-                        "WHERE p.data_ora::date = CURRENT_DATE " +
-                        "ORDER BY p.data_ora";
+                        "WHERE 1=1 ");
+
+        List<Object> params = new ArrayList<>();
+
+        if (criteri.getCodice() != null && !criteri.getCodice().isBlank()) {
+            sql.append("AND pr.codice_univoco = ? ");
+            params.add(criteri.getCodice().trim().toUpperCase());
+        }
+        if (criteri.getNomeCliente() != null && !criteri.getNomeCliente().isBlank()) {
+            sql.append("AND (LOWER(u.nome) LIKE LOWER(?) OR LOWER(u.cognome) LIKE LOWER(?)) ");
+            params.add("%" + criteri.getNomeCliente().trim() + "%");
+            params.add("%" + criteri.getNomeCliente().trim() + "%");
+        }
+        if (criteri.getCognomeCliente() != null && !criteri.getCognomeCliente().isBlank()) {
+            sql.append("AND LOWER(u.cognome) LIKE LOWER(?) ");
+            params.add("%" + criteri.getCognomeCliente().trim() + "%");
+        }
+        if (criteri.getTitoloFilm() != null && !criteri.getTitoloFilm().isBlank()) {
+            sql.append("AND LOWER(f.titolo) LIKE LOWER(?) ");
+            params.add("%" + criteri.getTitoloFilm().trim() + "%");
+        }
+        if (criteri.getDataInizio() != null) {
+            sql.append("AND p.data_ora >= ? ");
+            params.add(Timestamp.valueOf(criteri.getDataInizio().atStartOfDay()));
+        }
+        if (criteri.getDataFine() != null) {
+            sql.append("AND p.data_ora <= ? ");
+            params.add(Timestamp.valueOf(criteri.getDataFine().atTime(23, 59, 59)));
+        }
+
+        sql.append("ORDER BY p.data_ora");
+
+        List<Prenotazione> risultati = new ArrayList<>();
+
+        try (Connection conn = DBconnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) risultati.add(creaPrenotazione(rs));
+            }
+        }
+        return risultati;
+    }
+
+    /**
+     * Restituisce le prenotazioni per la data odierna.
+     *
+     * @return lista delle prenotazioni di oggi
+     * @throws SQLException in caso di errore DB
+     */
+    public List<Prenotazione> trovaDiOggi() throws SQLException {
+        String sql = "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
+                "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +
+                "p.data_ora, p.prezzo_biglietto, " +
+                "f.id_film, f.titolo, f.genere, f.regista, f.anno, f.durata_minuti, f.eta_minima, " +
+                "(" + CAPIENZA_MASSIMA + " - COALESCE((SELECT SUM(x.numero_posti) FROM prenotazioni x " +
+                "WHERE x.data_ora = p.data_ora), 0)) AS posti_liberi " +
+                "FROM prenotazioni pr " +
+                "JOIN utenti     u ON pr.username_cliente = u.username " +
+                "JOIN proiezioni p ON pr.data_ora         = p.data_ora " +
+                "JOIN film       f ON p.id_film           = f.id_film " +
+                "WHERE p.data_ora::date = CURRENT_DATE " +
+                "ORDER BY p.data_ora";
 
         List<Prenotazione> risultati = new ArrayList<>();
 
         try (Connection conn = DBconnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-
             while (rs.next()) risultati.add(creaPrenotazione(rs));
         }
         return risultati;
     }
 
-    private Prenotazione creaPrenotazione(ResultSet rs) throws SQLException {
+    private int calcolaPostiLiberi(LocalDateTime dataOra) throws SQLException {
+        String sql = "SELECT COALESCE(SUM(numero_posti), 0) FROM prenotazioni WHERE data_ora = ?";
 
+        try (Connection conn = DBconnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(dataOra));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return CAPIENZA_MASSIMA - rs.getInt(1);
+            }
+        }
+    }
+
+    private Prenotazione creaPrenotazione(ResultSet rs) throws SQLException {
         Film film = new Film(
                 rs.getInt   ("id_film"),
                 rs.getString("titolo"),
@@ -310,13 +365,14 @@ public class PrenotazioneDAO {
                 Ruolo.valueOf(rs.getString("ruolo"))
         );
 
+        Timestamp tsCreazione = rs.getTimestamp("data_creazione");
+
         return new Prenotazione(
                 rs.getString("codice_univoco"),
                 cliente,
                 proiezione,
                 rs.getInt   ("numero_posti"),
-                null
+                tsCreazione != null ? tsCreazione.toLocalDateTime() : null
         );
     }
-
 }

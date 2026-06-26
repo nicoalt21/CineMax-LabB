@@ -56,7 +56,7 @@ public class CreaProiezioneController extends DashboardBaseController {
     private static final double LARGHEZZA_GRIGLIA = LARGHEZZA_CAMPO * 2 + 24;
     private static final DateTimeFormatter FORMATO_ORA = DateTimeFormatter.ofPattern("HH:mm");
     // In creazione non si esclude nessuna proiezione dal calcolo delle finestre.
-    private static final int NESSUNA_ESCLUSIONE = -1;
+    private static final LocalDateTime NESSUNA_ESCLUSIONE = null;
 
     private final GestoreScene gestoreScene;
 

@@ -11,65 +11,105 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
+/**
+ * Interfaccia RMI per i servizi di gestione delle proiezioni.
+ * Le proiezioni sono identificate dalla data_ora (chiave primaria nel DB).
+ */
 public interface ServizioProiezioni extends Remote {
 
+    /**
+     * Cerca proiezioni in base a criteri combinabili.
+     *
+     * @param criteri criteri di ricerca (titolo, genere, date, costo)
+     * @return lista di proiezioni corrispondenti
+     * @throws RemoteException in caso di errore RMI
+     */
     List<Proiezione> cercaProiezioni(CriteriRicercaProiezione criteri) throws RemoteException;
 
-    Proiezione visualizzaProiezione(int idProiezione) throws RemoteException;
+    /**
+     * Restituisce il dettaglio di una proiezione.
+     *
+     * @param dataOra identificatore della proiezione
+     * @return proiezione con posti liberi aggiornati, null se non esiste
+     * @throws RemoteException in caso di errore RMI
+     */
+    Proiezione visualizzaProiezione(LocalDateTime dataOra) throws RemoteException;
 
+    /**
+     * Aggiunge una nuova proiezione al palinsesto.
+     * Operazione riservata ai proiezionisti.
+     * Fallisce se la proiezione si sovrappone a una esistente.
+     *
+     * @param proiezione proiezione da aggiungere
+     * @return true se aggiunta, false se sovrapposizione o vincoli violati
+     * @throws RemoteException in caso di errore RMI
+     */
     boolean aggiungiProiezione(Proiezione proiezione) throws RemoteException;
 
-    /*
-     ATTENZIONE BACK-END: la firma di questo metodo e' CAMBIATA.
-     Prima era: boolean modificaProiezione(int idProiezione, LocalDateTime nuovaDataOra)
-     e cambiava solo l'orario.
-
-     Ora la modifica e' completa: una proiezione esistente (stesso idProiezione, che NON
-     cambia) puo' cambiare film, data/ora e costo. L'implementazione deve:
-       - ripassare gli stessi vincoli d'integrita' di una creazione: nessuna
-         sovrapposizione temporale con le ALTRE proiezioni (la proiezione stessa va
-         ESCLUSA dal confronto, altrimenti collide con la propria versione precedente);
-         la proiezione deve terminare entro le 24:00 (niente scavalco di mezzanotte);
-       - NON invalidare le prenotazioni gia' associate alla proiezione (i biglietti
-         restano validi sul nuovo orario): conviene mutare l'oggetto esistente in-place
-         invece di distruggerlo e ricrearlo;
-       - restituire false se i vincoli non sono rispettati o l'id non esiste.
+    /**
+     * Modifica una proiezione esistente (film, data/ora, costo).
+     * Operazione riservata ai proiezionisti.
+     * La proiezione da modificare e' identificata da dataOraAttuale.
+     * Non invalida le prenotazioni esistenti.
+     *
+     * @param dataOraAttuale identificatore della proiezione da modificare
+     * @param idFilm nuovo film
+     * @param nuovaDataOra nuova data e ora
+     * @param costo nuovo costo biglietto
+     * @return true se modificata, false se vincoli violati o proiezione non trovata
+     * @throws RemoteException in caso di errore RMI
      */
-    boolean modificaProiezione(int idProiezione, int idFilm, LocalDateTime nuovaDataOra,
-                               double costo) throws RemoteException;
+    boolean modificaProiezione(LocalDateTime dataOraAttuale, int idFilm,
+                               LocalDateTime nuovaDataOra, double costo) throws RemoteException;
 
-    boolean eliminaProiezione(int idProiezione) throws RemoteException;
+    /**
+     * Elimina una proiezione dal palinsesto.
+     * Operazione riservata ai proiezionisti.
+     * Fallisce se esistono prenotazioni per quella proiezione.
+     *
+     * @param dataOra identificatore della proiezione da eliminare
+     * @return true se eliminata, false se esistono prenotazioni
+     * @throws RemoteException in caso di errore RMI
+     */
+    boolean eliminaProiezione(LocalDateTime dataOra) throws RemoteException;
 
-    // Crea un nuovo film nel catalogo. Restituisce false se esiste gia' un film IDENTICO
-    // su tutti i campi (titolo, genere, regista, anno, durata, eta' minima). Due film con
-    // lo stesso titolo ma altri dati diversi (es. un remake) sono ammessi.
+    /**
+     * Aggiunge un film al catalogo.
+     * Fallisce se esiste gia' un film identico su tutti i campi.
+     *
+     * @param film film da aggiungere
+     * @return true se aggiunto, false se duplicato
+     * @throws RemoteException in caso di errore RMI
+     */
     boolean aggiungiFilm(Film film) throws RemoteException;
 
-    // Elenca i film del catalogo (usato, ad esempio, per popolare i selettori).
+    /**
+     * Restituisce tutti i film del catalogo.
+     *
+     * @return lista di tutti i film
+     * @throws RemoteException in caso di errore RMI
+     */
     List<Film> elencaFilm() throws RemoteException;
 
-    /*
-     BACK-END (nuovo metodo): ritorna i film il cui titolo CONTIENE la stringa passata
-     (confronto case-insensitive), per i suggerimenti durante la digitazione. L'identita'
-     del film resta la chiave primaria idFilm: il titolo serve solo per cercare, non per
-     identificare. Stringa vuota/null -> conviene restituire l'intero catalogo o lista vuota,
-     a scelta dell'implementazione (il client gestisce entrambi i casi).
+    /**
+     * Cerca film per titolo parziale (case-insensitive).
+     *
+     * @param titoloParziale stringa da cercare nel titolo
+     * @return lista di film il cui titolo contiene la stringa
+     * @throws RemoteException in caso di errore RMI
      */
     List<Film> cercaFilmPerTitolo(String titoloParziale) throws RemoteException;
 
-    /*
-     BACK-END (nuovo metodo): ritorna gli orari d'INIZIO ammessi (multipli di 5 minuti) in
-     cui un film della durata indicata puo' iniziare nel giorno dato, senza sovrapporsi ad
-     altre proiezioni e terminando entro le 24:00. Regole:
-       - la sala e' libera dalle 00:00 e tutte le proiezioni devono finire entro le 24:00;
-       - uno slot d'inizio S e' ammesso se l'intervallo [S, S + durataMinuti) non si
-         sovrappone a nessun intervallo gia' occupato e S + durataMinuti <= 24:00;
-       - le fini delle proiezioni gia' occupate vanno arrotondate per ECCESSO al multiplo
-         di 5 minuti successivo, cosi' il prossimo slot libero parte pulito;
-       - idProiezioneDaEscludere permette, in fase di MODIFICA, di non considerare la
-         proiezione che si sta modificando (cosi' non collide con se stessa). In fase di
-         CREAZIONE si passa un id non valido, es. -1.
+    /**
+     * Restituisce gli orari liberi in cui un film puo' iniziare in un dato giorno.
+     *
+     * @param giorno giorno di interesse
+     * @param durataMinuti durata del film in minuti
+     * @param dataOraProiezioneDaEscludere data_ora della proiezione da escludere
+     *                                     in fase di modifica, null in fase di creazione
+     * @return lista di orari di inizio ammessi (multipli di 5 minuti)
+     * @throws RemoteException in caso di errore RMI
      */
     List<LocalTime> finestreLibere(LocalDate giorno, int durataMinuti,
-                                   int idProiezioneDaEscludere) throws RemoteException;
+                                   LocalDateTime dataOraProiezioneDaEscludere) throws RemoteException;
 }

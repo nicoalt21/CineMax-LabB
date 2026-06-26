@@ -4,6 +4,7 @@ import cinemax.client.gui.component.CampoConEtichetta;
 import cinemax.client.gui.navigation.GestoreScene;
 import cinemax.common.model.Ruolo;
 import cinemax.common.model.Utente;
+import cinemax.common.util.Cifrario;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -203,7 +204,7 @@ public class RegistrazioneController {
         String nome = campoNome.getTesto().trim();
         String cognome = campoCognome.getTesto().trim();
         String username = campoUsername.getTesto().trim();
-        String password = campoPassword.getTesto(); // <---------------------------------------------- QUI LA PASSWORD VA CIFRATA
+        String password = Cifrario.cifraPassword(campoPassword.getTesto());
         LocalDate dataNascita = leggiDataNascita();
         String domicilio = vuotoComeNull(campoDomicilio.getTesto());
 

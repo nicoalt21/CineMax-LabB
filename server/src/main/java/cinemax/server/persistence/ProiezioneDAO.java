@@ -118,22 +118,26 @@ public class ProiezioneDAO {
         }
     }
 
-    public boolean modificaProiezione(LocalDateTime dataOraAttuale, LocalDateTime nuovaDataOra) throws SQLException {
+    public boolean modificaProiezione(LocalDateTime dataOraAttuale, int idFilm,
+                                      LocalDateTime nuovaDataOra, double costo) throws SQLException {
 
         if (hasPrenotazioni(dataOraAttuale)) return false;
 
         Proiezione p = ottieniProiezione(dataOraAttuale);
         if (p == null) return false;
 
-        if (siSovrappongono(nuovaDataOra, p.getFilm().getDurataMinuti(), dataOraAttuale)) return false;
+        int durata = p.getFilm().getDurataMinuti();
+        if (siSovrappongono(nuovaDataOra, durata, dataOraAttuale)) return false;
 
-        String sql = "UPDATE proiezioni SET data_ora = ? WHERE data_ora = ?";
+        String sql = "UPDATE proiezioni SET data_ora = ?, id_film = ?, prezzo_biglietto = ? " +
+                "WHERE data_ora = ?";
 
         try (Connection conn = DBconnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setTimestamp(1, Timestamp.valueOf(nuovaDataOra));
-            ps.setTimestamp(2, Timestamp.valueOf(dataOraAttuale));
+            ps.setInt      (2, idFilm);
+            ps.setDouble   (3, costo);
+            ps.setTimestamp(4, Timestamp.valueOf(dataOraAttuale));
             ps.executeUpdate();
             return true;
         }
@@ -282,11 +286,79 @@ public class ProiezioneDAO {
         );
 
         return new Proiezione(
+                0,
                 film,
                 rs.getTimestamp("data_ora").toLocalDateTime(),
                 rs.getDouble   ("prezzo_biglietto"),
                 rs.getInt      ("posti_liberi")
         );
+    }
+
+    /**
+     * Calcola gli orari di inizio liberi (multipli di 5 min) in un dato giorno
+     * in cui un film della durata indicata può iniziare senza sovrapposizioni,
+     * terminando entro le 24:00.
+     *
+     * @param giorno                       giorno di interesse
+     * @param durataMinuti                 durata del film
+     * @param dataOraProiezioneDaEscludere proiezione da escludere (modifica), null se nuova
+     * @return lista di orari ammessi
+     * @throws SQLException in caso di errore DB
+     */
+    public List<java.time.LocalTime> calcolaFinestreLibere(java.time.LocalDate giorno,
+                                                           int durataMinuti,
+                                                           LocalDateTime dataOraProiezioneDaEscludere)
+            throws SQLException {
+
+        List<java.time.LocalTime> risultati = new ArrayList<>();
+        java.time.LocalDateTime inizioGiorno = giorno.atStartOfDay();
+        java.time.LocalDateTime fineGiorno   = giorno.atTime(23, 59, 59);
+
+        // Carico le proiezioni del giorno (escludo quella in modifica se presente)
+        String sql = "SELECT p.data_ora, f.durata_minuti FROM proiezioni p " +
+                "JOIN film f ON p.id_film = f.id_film " +
+                "WHERE p.data_ora >= ? AND p.data_ora <= ? " +
+                (dataOraProiezioneDaEscludere != null ? "AND p.data_ora != ? " : "") +
+                "ORDER BY p.data_ora";
+
+        List<long[]> occupati = new ArrayList<>(); // [inizioMinuti, fineMinuti] dalla mezzanotte
+
+        try (Connection conn = DBconnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(inizioGiorno));
+            ps.setTimestamp(2, Timestamp.valueOf(fineGiorno));
+            if (dataOraProiezioneDaEscludere != null) {
+                ps.setTimestamp(3, Timestamp.valueOf(dataOraProiezioneDaEscludere));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    java.time.LocalDateTime inizio = rs.getTimestamp("data_ora").toLocalDateTime();
+                    int durata = rs.getInt("durata_minuti");
+                    long inizioMin = inizio.getHour() * 60L + inizio.getMinute();
+                    long fineMin   = inizioMin + durata;
+                    // Arrotonda la fine al multiplo di 5 successivo
+                    if (fineMin % 5 != 0) fineMin = (fineMin / 5 + 1) * 5;
+                    occupati.add(new long[]{inizioMin, fineMin});
+                }
+            }
+        }
+
+        // Prova ogni slot da 0:00 a (1440 - durataMinuti), a multipli di 5
+        for (int start = 0; start + durataMinuti <= 1440; start += 5) {
+            long fine = start + durataMinuti;
+            boolean libero = true;
+            for (long[] occ : occupati) {
+                // Sovrapposizione: [start, fine) interseca [occ[0], occ[1])
+                if (start < occ[1] && fine > occ[0]) {
+                    libero = false;
+                    break;
+                }
+            }
+            if (libero) {
+                risultati.add(java.time.LocalTime.of(start / 60, start % 60));
+            }
+        }
+        return risultati;
     }
 
 }
