@@ -11,6 +11,16 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Scanner;
 
+/**
+ * Classe per la creazione e il popolamento del database CineMax.
+ * Chiede le credenziali PostgreSQL all'utente, crea il database cinemaxdb
+ * ed esegue in ordine i file SQL per creare le tabelle e popolarle con i dati iniziali.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
+ */
 public class DBcreator {
 
     private static final String NOME_DATABASE = "cinemaxdb";
@@ -23,6 +33,13 @@ public class DBcreator {
             "prenotazioni.sql"
     };
 
+    /**
+     * Metodo principale. Chiede le credenziali all'utente, si connette a PostgreSQL,
+     * crea il database cinemaxdb se non esiste (o lo ricrea se richiesto),
+     * poi esegue i file SQL in ordine per creare  e popolare le tabelle.
+     *
+     * @param args argomenti della riga di comando (non utilizzati)
+     */
     public static void main(String[] args) {
 
         Scanner scanner = new Scanner(System.in);
@@ -130,6 +147,14 @@ public class DBcreator {
         scanner.close();
     }
 
+    /**
+     * Legge un file SQL dalle resources e lo esegue istruzione per istruzione.
+     * Le istruzioni sono separate dal carattere ";".
+     * Le righe vuote e i commenti (--) vengono ignorati.
+     *
+     * @param conn     connessione al database
+     * @param nomeFile nome del file SQL in resources/data/sql/
+     */
     private static void eseguiFileSql(Connection conn, String nomeFile) {
 
         String percorso = "/data/sql/" + nomeFile;

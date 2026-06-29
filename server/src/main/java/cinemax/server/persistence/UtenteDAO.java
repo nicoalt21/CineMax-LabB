@@ -8,6 +8,12 @@ import java.time.LocalDate;
 
 /**
  * DAO per la gestione degli utenti nel database.
+ * Gestisce le operazioni di autenticazione, registrazione e ricerca degli utenti.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class UtenteDAO {
 

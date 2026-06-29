@@ -15,6 +15,13 @@ import java.util.UUID;
 
 /**
  * DAO per la gestione delle prenotazioni nel database.
+ * Gestisce le operazioni CRUD sulle prenotazioni garantendo la disponibilità
+ * dei posti e la corretta gestione della concorrenza tramite SELECT FOR UPDATE.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class PrenotazioneDAO {
 
