@@ -1,6 +1,9 @@
 package cinemax.client.controller.auth;
 
 import cinemax.client.gui.navigation.GestoreScene;
+import cinemax.client.service.FornitoreServizi;
+import cinemax.client.service.StatoConnessione;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -12,11 +15,16 @@ import javafx.scene.layout.VBox;
  Schermata di connessione al server, mostrata all'avvio del client prima dello Start.
  L'utente indica indirizzo IP e porta del server CineMax.
 
- NOTA: per ora è un placeholder. Il client lavora con i servizi finti in memoria, quindi
- il bottone "Connetti" non apre davvero una connessione: prosegue verso lo Start. Quando
- il server RMI sarà pronto, qui si tenterà la connessione reale
- (FornitoreServizi.creaReale(ip, porta)) e, in caso di errore, si resterà su questa
- schermata mostrando un messaggio, con i campi IP/porta mantenuti.
+ A differenza del placeholder precedente, qui la connessione è REALE:
+   - si tenta FornitoreServizi.creaReale(ip, porta) verso il registry RMI;
+   - se riesce, si avvia il monitoraggio della connessione (StatoConnessione),
+     che registra il client presso il server (il server lo stampa a terminale)
+     e fa partire l'heartbeat periodico;
+   - il fornitore reale viene iniettato nel GestoreScene e si prosegue allo Start;
+   - se fallisce, si resta su questa schermata con un messaggio, mantenendo i campi.
+
+ Il tentativo gira su un thread separato per non bloccare la UI: durante l'attesa
+ il bottone è disabilitato e mostra "Connessione in corso...".
 
  Costruita interamente in codice Java (niente FXML), in linea con il resto della UI.
  */
@@ -28,6 +36,7 @@ public class ConnessioneController {
     private final TextField campoIp = new TextField();
     private final TextField campoPorta = new TextField();
     private final Label labelErrore = new Label();
+    private final Button btnConnetti = new Button("Connetti");
 
     public ConnessioneController(GestoreScene gestoreScene) {
         this.gestoreScene = gestoreScene;
@@ -61,7 +70,6 @@ public class ConnessioneController {
         campoPorta.getStyleClass().add("campo-testo");
         campoPorta.setMaxWidth(280);
 
-        Button btnConnetti = new Button("Connetti");
         btnConnetti.setMaxWidth(280);
         btnConnetti.getStyleClass().add("bottone-primario");
         btnConnetti.setOnAction(e -> onConnettiCliccato());
@@ -85,9 +93,9 @@ public class ConnessioneController {
             return;
         }
 
-        // Validazione minima: la porta deve essere un numero valido.
+        final int porta;
         try {
-            int porta = Integer.parseInt(portaTesto.trim());
+            porta = Integer.parseInt(portaTesto.trim());
             if (porta < 1 || porta > 65535) {
                 mostraErrore("La porta deve essere tra 1 e 65535.");
                 return;
@@ -97,17 +105,47 @@ public class ConnessioneController {
             return;
         }
 
-        // PLACEHOLDER: qui andrà il tentativo di connessione reale al server.
-        // Quando il server RMI sarà pronto, qualcosa come:
-        //   try {
-        //       FornitoreServizi reale = FornitoreServizi.creaReale(ip, porta);
-        //       gestoreScene.impostaFornitoreServizi(reale);
-        //   } catch (RemoteException | NotBoundException ex) {
-        //       mostraErrore("Server non raggiungibile. Riprova.");
-        //       return; // resto su questa schermata, campi mantenuti
-        //   }
-        // Per ora si prosegue sempre, usando i servizi finti già impostati all'avvio.
-        gestoreScene.vaiAStart();
+        final String host = ip.trim();
+
+        // Tentativo di connessione su thread separato: la rete può richiedere
+        // tempo e non deve congelare la UI. Durante l'attesa blocco i campi.
+        impostaAttesa(true);
+
+        Thread tentativo = new Thread(() -> {
+            try {
+                FornitoreServizi reale = FornitoreServizi.creaReale(host, porta);
+
+                // Avvia il monitoraggio: registra il client presso il server (che
+                // lo stampa a terminale) e fa partire l'heartbeat. Se anche solo
+                // la registrazione fallisce, consideriamo la connessione non valida.
+                StatoConnessione.getInstance()
+                        .avviaMonitoraggio(reale.getServizioConnessione());
+
+                // Tutto ok: iniettiamo il fornitore reale e proseguiamo, sul thread FX.
+                Platform.runLater(() -> {
+                    impostaAttesa(false);
+                    gestoreScene.setFornitoreServizi(reale);
+                    gestoreScene.vaiAStart();
+                });
+
+            } catch (Exception ex) {
+                // Registry irraggiungibile, servizio non registrato, host errato, ecc.
+                Platform.runLater(() -> {
+                    impostaAttesa(false);
+                    mostraErrore("Server non raggiungibile. Verifica IP e porta e riprova.");
+                });
+            }
+        }, "tentativo-connessione");
+        tentativo.setDaemon(true);
+        tentativo.start();
+    }
+
+    // Abilita/disabilita i controlli durante il tentativo di connessione.
+    private void impostaAttesa(boolean inAttesa) {
+        btnConnetti.setDisable(inAttesa);
+        campoIp.setDisable(inAttesa);
+        campoPorta.setDisable(inAttesa);
+        btnConnetti.setText(inAttesa ? "Connessione in corso..." : "Connetti");
     }
 
     private void mostraErrore(String messaggio) {

@@ -1,6 +1,6 @@
 package cinemax.client.gui.navigation;
 
-import cinemax.client.service.FornitoreServizi;
+import cinemax.client.service.StatoConnessione;
 import javafx.application.Application;
 import javafx.scene.image.Image;
 import javafx.scene.text.Font;
@@ -54,16 +54,14 @@ public class ClientApplication extends Application {
             primaryStage.setMinWidth(600);
             primaryStage.setMinHeight(500);
 
-            // Scelta dell'implementazione dei servizi. Per ora si usano i finti
-            // in memoria, così la UI è sviluppabile e testabile senza il server.
-            // Quando ci sarà la schermata IP:porta, qui si deciderà fra
-            // FornitoreServizi.creaFinto() e FornitoreServizi.creaReale(host, porta).
-            FornitoreServizi fornitoreServizi = FornitoreServizi.creaFinto();
-
-            // La navigazione (Scene, CSS, schermata iniziale) è gestita interamente
-            // da GestioreScene: la UI è costruita in codice Java, niente FXML.
+            // Il fornitore dei servizi NON viene più creato qui: all'avvio non
+            // sappiamo ancora se il server è raggiungibile, e tentare la
+            // connessione adesso farebbe fallire l'intera applicazione quando il
+            // server è spento. La connessione reale viene stabilita dalla
+            // schermata di connessione (ConnessioneController), che inietta il
+            // fornitore nel GestoreScene solo quando il collegamento riesce.
             GestoreScene gestoreScene = new GestoreScene();
-            gestoreScene.inizializza(primaryStage, fornitoreServizi);
+            gestoreScene.inizializza(primaryStage, null);
 
             primaryStage.show();
 
@@ -71,5 +69,12 @@ public class ClientApplication extends Application {
             e.printStackTrace();
             System.err.println("Errore critico durante l'avvio dell'interfaccia grafica.");
         }
+    }
+
+    @Override
+    public void stop() {
+        // Alla chiusura della finestra: notifica al server la disconnessione e
+        // ferma l'heartbeat. Best-effort, non blocca la chiusura.
+        StatoConnessione.getInstance().chiudi();
     }
 }

@@ -1,12 +1,16 @@
 package cinemax.client.controller.shared;
 
 import cinemax.client.gui.navigation.GestoreScene;
+import cinemax.client.service.StatoConnessione;
 import cinemax.client.controller.cliente.DashboardClienteController;
 import cinemax.client.controller.cliente.MiePrenotazioniController;
+import cinemax.client.controller.cliente.PrenotazioneController;
 import cinemax.client.controller.bigliettaio.ProiezioniOggiController;
 import cinemax.client.controller.bigliettaio.VerificaBigliettoController;
 import cinemax.client.controller.proiezionista.CreaProiezioneController;
 import cinemax.client.controller.proiezionista.CreaFilmController;
+import cinemax.client.controller.proiezionista.ModificaProiezioneController;
+import cinemax.common.model.Proiezione;
 import cinemax.common.model.Utente;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -62,6 +66,10 @@ public class BaseLayoutController {
     // Bottone Login/Logout (cambia testo e stile in base allo stato)
     private final Button btnAuth = new Button();
 
+    // Indicatore di stato della connessione al server, sempre visibile nell'header.
+    // Il testo e lo stile (verde/rosso) seguono StatoConnessione.connessoProperty().
+    private final Label labelStatoConnessione = new Label();
+
     // Nodi che il guest vede ma non può usare (es. "Prenota", "Le mie prenotazioni")
     private final List<Node> nodiRiservati = new ArrayList<>();
 
@@ -96,7 +104,9 @@ public class BaseLayoutController {
 
         btnAuth.setOnAction(this::onAuthCliccato);
 
-        header.getChildren().addAll(logo, labelBenvenuto, spazio, btnAuth);
+        configuraIndicatoreConnessione();
+
+        header.getChildren().addAll(logo, labelBenvenuto, spazio, labelStatoConnessione, btnAuth);
 
         // Bottone collassa/espandi: sta in alto a destra DENTRO il pannello laterale.
         btnCollassaMenu.getStyleClass().add("bottone-collassa");
@@ -126,6 +136,33 @@ public class BaseLayoutController {
 
         // Il layout vero sta sotto; l'overlay (aggiunto dopo) sta sopra.
         radice.getChildren().add(contenitorePrincipale);
+    }
+
+    /*
+     Configura l'indicatore di stato della connessione mostrato nell'header.
+     Si lega a StatoConnessione.connessoProperty(): quando lo stato cambia,
+     aggiorna testo e colore (verde = connesso, rosso = disconnesso). Il pallino
+     "●" davanti al testo rende l'indicatore leggibile a colpo d'occhio.
+     La property viene già aggiornata sul thread JavaFX da StatoConnessione,
+     quindi il listener può toccare la UI senza ulteriori accorgimenti.
+    */
+    private void configuraIndicatoreConnessione() {
+        labelStatoConnessione.getStyleClass().add("testo-secondario");
+        StatoConnessione stato = StatoConnessione.getInstance();
+        aggiornaIndicatoreConnessione(stato.isConnesso());
+        stato.connessoProperty().addListener(
+                (obs, eraConnesso, oraConnesso) -> aggiornaIndicatoreConnessione(oraConnesso));
+    }
+
+    // Applica testo e colore all'indicatore in base allo stato corrente.
+    private void aggiornaIndicatoreConnessione(boolean connesso) {
+        if (connesso) {
+            labelStatoConnessione.setText("● Connesso");
+            labelStatoConnessione.setStyle("-fx-text-fill: #2e7d32; -fx-font-weight: bold;");
+        } else {
+            labelStatoConnessione.setText("● Disconnesso");
+            labelStatoConnessione.setStyle("-fx-text-fill: #c62828; -fx-font-weight: bold;");
+        }
     }
 
     // Costruisce l'overlay di conferma: sfondo scuro semi-trasparente + riquadro centrale
@@ -471,6 +508,46 @@ public class BaseLayoutController {
         prenotazioni.setUtente(utenteLoggato);
         prenotazioni.inizializza();
         impostaContenutoCentrale(prenotazioni.getRoot());
+    }
+
+    /*
+     Apre la schermata di prenotazione per la proiezione scelta. Chiamata dalla
+     dashboard di ricerca quando il cliente preme "Prenota" su una card. Il Guest non
+     arriva qui perché il layout blocca il bottone di prenotazione; per difesa la
+     schermata stessa ricontrolla isGuest().
+    */
+    public void mostraPrenotazione(Proiezione proiezione) {
+        PrenotazioneController prenotazione =
+                new PrenotazioneController(gestoreScene, this, proiezione);
+        prenotazione.setUtente(utenteLoggato);
+        prenotazione.inizializza();
+        impostaContenutoCentrale(prenotazione.getRoot());
+    }
+
+    /*
+     Apre la schermata di modifica di una proiezione (solo proiezionista). Chiamata dalla
+     dashboard di ricerca quando il proiezionista preme "Modifica" su una card. La schermata
+     rispetta i vincoli di integrità: il server rifiuta la modifica se la proiezione ha
+     prenotazioni o se la nuova collocazione si sovrappone.
+    */
+    public void mostraModificaProiezione(Proiezione proiezione) {
+        ModificaProiezioneController modifica =
+                new ModificaProiezioneController(gestoreScene, this, proiezione);
+        modifica.setUtente(utenteLoggato);
+        modifica.inizializza();
+        impostaContenutoCentrale(modifica.getRoot());
+    }
+
+    /*
+     Versioni pubbliche usate dalla schermata di prenotazione per tornare alla ricerca
+     o passare alle proprie prenotazioni dopo aver concluso (o annullato) il flusso.
+    */
+    public void mostraDashboardRicercaPubblica() {
+        mostraDashboardRicerca();
+    }
+
+    public void mostraMiePrenotazioniPubblica() {
+        mostraMiePrenotazioni();
     }
 
     // Costruisce una voce di menu laterale con lo stile a tutta larghezza.

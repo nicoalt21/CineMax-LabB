@@ -46,6 +46,13 @@ public class GestoreScene {
         return fornitoreServizi;
     }
 
+    // Imposta (o sostituisce) il fornitore dei servizi remoti. Usato dalla
+    // schermata di connessione: all'avvio il fornitore è null, e viene
+    // valorizzato qui solo quando la connessione al server riesce davvero.
+    public void setFornitoreServizi(FornitoreServizi fornitoreServizi) {
+        this.fornitoreServizi = fornitoreServizi;
+    }
+
     // Restituisce le impostazioni condivise della sessione.
     public Impostazioni getImpostazioni() {
         return impostazioni;

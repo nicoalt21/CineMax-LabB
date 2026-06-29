@@ -280,17 +280,25 @@ public class DashboardClienteController extends DashboardBaseController {
             // Click sull'intera card -> dettagli proiezione (consentito anche al Guest).
             card.setOnMouseClicked(e -> mostraDettagliProiezione(p));
 
-            // Azione "Prenota": disponibile a tutti come bottone, ma il layout la blocca
-            // per il Guest. La registro come nodo riservato.
-            card.setAzionePrincipale(this::avviaPrenotazione);
-            layout.registraNodoRiservato(card.getBottonePrincipale());
+            if (!isGuest() && ruolo == Ruolo.PROIEZIONISTA) {
+                // PROIEZIONISTA: il bottone principale è "Modifica" e apre la schermata di
+                // modifica della proiezione (NON la prenotazione). Non è un nodo riservato
+                // (il proiezionista è autenticato) e non c'è blocco età.
+                card.setAzionePrincipale(this::avviaModifica);
+            } else {
+                // CLIENTE / GUEST: il bottone principale è "Prenota". Disponibile a tutti
+                // come bottone, ma il layout lo blocca per il Guest: lo registro come
+                // nodo riservato.
+                card.setAzionePrincipale(this::avviaPrenotazione);
+                layout.registraNodoRiservato(card.getBottonePrincipale());
 
-            // Blocco età: se l'utente è troppo giovane per il film, disabilito Prenota.
-            // Per il Guest (utenteLoggato null) l'età non è verificabile: nessun blocco.
-            if (!isGuest()) {
-                int etaMinima = p.getFilm().getEtaMinima();
-                if (!FasciaEta.puoPrenotare(utenteLoggato.getDataNascita(), etaMinima)) {
-                    card.bloccaPrenotazione("Vietato ai minori di " + etaMinima + " anni");
+                // Blocco età: se l'utente è troppo giovane per il film, disabilito Prenota.
+                // Per il Guest (utenteLoggato null) l'età non è verificabile: nessun blocco.
+                if (!isGuest()) {
+                    int etaMinima = p.getFilm().getEtaMinima();
+                    if (!FasciaEta.puoPrenotare(utenteLoggato.getDataNascita(), etaMinima)) {
+                        card.bloccaPrenotazione("Vietato ai minori di " + etaMinima + " anni");
+                    }
                 }
             }
 
@@ -313,10 +321,14 @@ public class DashboardClienteController extends DashboardBaseController {
     // Avvio del flusso di prenotazione (solo clienti registrati; per il Guest il bottone
     // è bloccato dal layout, quindi questo metodo non viene raggiunto da un Guest).
     private void avviaPrenotazione(Proiezione p) {
-        // NAVIGAZIONE / RICHIESTA AL SERVER
         // Apre la schermata di inserimento prenotazione per la proiezione scelta.
-        // La creazione vera e propria (creaPrenotazione) avverrà in quella schermata:
-        //   Input:  Prenotazione (proiezione + numero biglietti + cliente)
-        //   Output: codice prenotazione univoco generato dal server.
+        // La creazione vera e propria (creaPrenotazione) avviene in quella schermata.
+        layout.mostraPrenotazione(p);
+    }
+
+    // Avvio del flusso di modifica (solo proiezionista). Apre la schermata di modifica
+    // della proiezione, che rispetta i vincoli di integrità lato server.
+    private void avviaModifica(Proiezione p) {
+        layout.mostraModificaProiezione(p);
     }
 }

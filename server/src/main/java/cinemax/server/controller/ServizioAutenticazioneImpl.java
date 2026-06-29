@@ -19,25 +19,37 @@ public class ServizioAutenticazioneImpl extends UnicastRemoteObject implements S
 
     @Override
     public Utente login(String username, String passwordHash) throws RemoteException {
+        LogServer.richiesta("Autenticazione", "login username=" + username);
         try {
-            return utenteDAO.autenticaUtente(username, passwordHash);
+            Utente u = utenteDAO.autenticaUtente(username, passwordHash);
+            LogServer.esito("Autenticazione", u != null
+                    ? "login OK ruolo=" + u.getRuolo()
+                    : "login FALLITO (credenziali errate)");
+            return u;
         } catch (SQLException e) {
+            LogServer.esito("Autenticazione", "login ERRORE DB: " + e.getMessage());
             throw new RemoteException("Errore durante il login", e);
         }
     }
 
     @Override
     public boolean registraCliente(Utente utente) throws RemoteException {
+        LogServer.richiesta("Autenticazione", "registraCliente username="
+                + (utente != null ? utente.getUsername() : "null"));
         try {
-            return utenteDAO.registraCliente(utente);
+            boolean ok = utenteDAO.registraCliente(utente);
+            LogServer.esito("Autenticazione", "registraCliente " + (ok ? "OK" : "RIFIUTATA (username gia' in uso?)"));
+            return ok;
         } catch (SQLException e) {
+            LogServer.esito("Autenticazione", "registraCliente ERRORE DB: " + e.getMessage());
             throw new RemoteException("Errore durante la registrazione", e);
         }
     }
 
     @Override
     public void logout(String username) throws RemoteException {
-        // RMI è stateless — il logout è gestito lato clienttt
+        LogServer.richiesta("Autenticazione", "logout username=" + username);
+        // RMI è stateless — il logout è gestito lato client
         // Il server non mantiene sessioni attive
     }
 }
