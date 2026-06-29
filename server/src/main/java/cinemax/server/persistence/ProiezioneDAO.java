@@ -72,11 +72,16 @@ public class ProiezioneDAO {
    private boolean siSovrappongono(LocalDateTime dataOra, int durata, LocalDateTime escludiSlot)
            throws SQLException {
 
+       // Due proiezioni si sovrappongono se l'intervallo [inizio, inizio+durata) della
+       // candidata interseca quello di una proiezione esistente. Usiamo make_interval e
+       // cast espliciti dei timestamp per evitare ambiguità di tipo in PostgreSQL
+       // (la vecchia versione con "|| ' minutes'::interval" causava l'errore
+       // "timestamp < interval").
        String sql =
                "SELECT 1 FROM proiezioni p JOIN film f ON p.id_film = f.id_film " +
-                       "WHERE (? IS NULL OR p.data_ora != ?) " +
-                       "AND ? < p.data_ora + (f.durata_minuti || ' minutes')::interval " +
-                       "AND p.data_ora < ? + (? || ' minutes')::interval";
+                       "WHERE (CAST(? AS timestamp) IS NULL OR p.data_ora <> CAST(? AS timestamp)) " +
+                       "AND CAST(? AS timestamp) < p.data_ora + make_interval(mins => f.durata_minuti) " +
+                       "AND p.data_ora < CAST(? AS timestamp) + make_interval(mins => ?)";
 
        try (Connection conn = DBconnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -294,17 +299,9 @@ public class ProiezioneDAO {
         );
     }
 
-    /**
-     * Calcola gli orari di inizio liberi (multipli di 5 min) in un dato giorno
-     * in cui un film della durata indicata può iniziare senza sovrapposizioni,
-     * terminando entro le 24:00.
-     *
-     * @param giorno                       giorno di interesse
-     * @param durataMinuti                 durata del film
-     * @param dataOraProiezioneDaEscludere proiezione da escludere (modifica), null se nuova
-     * @return lista di orari ammessi
-     * @throws SQLException in caso di errore DB
-     */
+    // Orari di inizio liberi (multipli di 5 min) in cui un film della durata indicata
+    // può iniziare in 'giorno' senza sovrapporsi ad altre proiezioni, terminando entro le
+    // 24:00. dataOraProiezioneDaEscludere: la proiezione in modifica da ignorare (null se nuova).
     public List<java.time.LocalTime> calcolaFinestreLibere(java.time.LocalDate giorno,
                                                            int durataMinuti,
                                                            LocalDateTime dataOraProiezioneDaEscludere)

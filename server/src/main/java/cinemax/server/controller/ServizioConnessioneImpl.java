@@ -12,25 +12,21 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Implementazione del servizio di monitoraggio connessioni.
- * <p>
- * Tiene un registro in memoria dei client attivi (idClient → ultimo istante di
- * contatto) e stampa a terminale gli eventi di connessione, disconnessione e
- * caduta per timeout. Un thread di pulizia rimuove i client che non inviano
- * heartbeat entro {@link #TIMEOUT_MS} millisecondi, stampando l'avvenuta
- * caduta: così il terminale del server riflette in tempo reale chi è collegato.
+ * Servizio di monitoraggio connessioni: tiene un registro in memoria dei client attivi
+ * (idClient → ultimo contatto) e stampa a terminale connessioni, disconnessioni e cadute.
+ * Un thread reaper rimuove e segnala i client che non inviano heartbeat entro TIMEOUT_MS.
  */
 public class ServizioConnessioneImpl extends UnicastRemoteObject implements ServizioConnessione {
 
-    /** Oltre questa soglia senza heartbeat il client è considerato caduto. */
+    // Oltre questa soglia senza heartbeat il client è considerato caduto.
     private static final long TIMEOUT_MS = 15_000;
 
-    /** Ogni quanto il reaper controlla i client scaduti. */
+    // Ogni quanto il reaper controlla i client scaduti.
     private static final long INTERVALLO_CONTROLLO_MS = 5_000;
 
     private static final DateTimeFormatter ORA = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-    /** idClient → ultimo istante (epoch ms) in cui si è avuto sue notizie. */
+    // idClient → ultimo istante (epoch ms) in cui si è avuto sue notizie.
     private final Map<String, Long> ultimoContatto = new ConcurrentHashMap<>();
 
     public ServizioConnessioneImpl() throws RemoteException {
@@ -65,10 +61,7 @@ public class ServizioConnessioneImpl extends UnicastRemoteObject implements Serv
         }
     }
 
-    /**
-     * Restituisce, quando disponibile, l'host del chiamante RMI tra parentesi.
-     * Utile a distinguere i client nei log; se non determinabile resta vuoto.
-     */
+    // Host del chiamante RMI tra parentesi, quando disponibile; vuoto altrimenti.
     private String provenienza() {
         try {
             return " (host: " + RemoteServer.getClientHost() + ")";
@@ -77,7 +70,7 @@ public class ServizioConnessioneImpl extends UnicastRemoteObject implements Serv
         }
     }
 
-    /** Thread demone che rimuove e segnala i client scaduti per assenza di heartbeat. */
+    // Thread demone che rimuove e segnala i client scaduti per assenza di heartbeat.
     private void avviaReaper() {
         Thread reaper = new Thread(() -> {
             while (true) {

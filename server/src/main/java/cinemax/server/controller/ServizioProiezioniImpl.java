@@ -23,18 +23,12 @@ public class ServizioProiezioniImpl extends UnicastRemoteObject implements Servi
     private final ProiezioneDAO proiezioneDAO;
     private final FilmDAO filmDAO;
 
-    /**
-     * Costruttore. Richiesto da UnicastRemoteObject.
-     *
-     * @throws RemoteException in caso di errore RMI
-     */
     public ServizioProiezioniImpl() throws RemoteException {
         super();
         this.proiezioneDAO = new ProiezioneDAO();
         this.filmDAO = new FilmDAO();
     }
 
-    /** {@inheritDoc} */
     @Override
     public List<Proiezione> cercaProiezioni(CriteriRicercaProiezione criteri) throws RemoteException {
         LogServer.richiesta("Proiezioni", "cercaProiezioni");
@@ -44,11 +38,10 @@ public class ServizioProiezioniImpl extends UnicastRemoteObject implements Servi
             return lista;
         } catch (SQLException e) {
             LogServer.esito("Proiezioni", "cercaProiezioni ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante la ricerca proiezioni", e);
+            throw LogServer.erroreRemoto("Errore durante la ricerca proiezioni", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public Proiezione visualizzaProiezione(LocalDateTime dataOra) throws RemoteException {
         LogServer.richiesta("Proiezioni", "visualizzaProiezione dataOra=" + dataOra);
@@ -56,11 +49,10 @@ public class ServizioProiezioniImpl extends UnicastRemoteObject implements Servi
             return proiezioneDAO.ottieniProiezione(dataOra);
         } catch (SQLException e) {
             LogServer.esito("Proiezioni", "visualizzaProiezione ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante la visualizzazione proiezione", e);
+            throw LogServer.erroreRemoto("Errore durante la visualizzazione proiezione", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public boolean aggiungiProiezione(Proiezione proiezione) throws RemoteException {
         LogServer.richiesta("Proiezioni", "aggiungiProiezione film="
@@ -72,11 +64,10 @@ public class ServizioProiezioniImpl extends UnicastRemoteObject implements Servi
             return ok;
         } catch (SQLException e) {
             LogServer.esito("Proiezioni", "aggiungiProiezione ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante l'aggiunta proiezione", e);
+            throw LogServer.erroreRemoto("Errore durante l'aggiunta proiezione", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public boolean modificaProiezione(LocalDateTime dataOraAttuale, int idFilm,
                                       LocalDateTime nuovaDataOra, double costo) throws RemoteException {
@@ -89,11 +80,10 @@ public class ServizioProiezioniImpl extends UnicastRemoteObject implements Servi
             return ok;
         } catch (SQLException e) {
             LogServer.esito("Proiezioni", "modificaProiezione ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante la modifica proiezione", e);
+            throw LogServer.erroreRemoto("Errore durante la modifica proiezione", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public boolean eliminaProiezione(LocalDateTime dataOra) throws RemoteException {
         LogServer.richiesta("Proiezioni", "eliminaProiezione dataOra=" + dataOra);
@@ -103,11 +93,10 @@ public class ServizioProiezioniImpl extends UnicastRemoteObject implements Servi
             return ok;
         } catch (SQLException e) {
             LogServer.esito("Proiezioni", "eliminaProiezione ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante l'eliminazione proiezione", e);
+            throw LogServer.erroreRemoto("Errore durante l'eliminazione proiezione", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public boolean aggiungiFilm(Film film) throws RemoteException {
         LogServer.richiesta("Proiezioni", "aggiungiFilm titolo="
@@ -118,11 +107,10 @@ public class ServizioProiezioniImpl extends UnicastRemoteObject implements Servi
             return ok;
         } catch (SQLException e) {
             LogServer.esito("Proiezioni", "aggiungiFilm ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante l'aggiunta film", e);
+            throw LogServer.erroreRemoto("Errore durante l'aggiunta film", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public List<Film> elencaFilm() throws RemoteException {
         LogServer.richiesta("Proiezioni", "elencaFilm");
@@ -130,11 +118,10 @@ public class ServizioProiezioniImpl extends UnicastRemoteObject implements Servi
             return filmDAO.elencaTutti();
         } catch (SQLException e) {
             LogServer.esito("Proiezioni", "elencaFilm ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante l'elenco film", e);
+            throw LogServer.erroreRemoto("Errore durante l'elenco film", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public List<Film> cercaFilmPerTitolo(String titoloParziale) throws RemoteException {
         LogServer.richiesta("Proiezioni", "cercaFilmPerTitolo titolo=" + titoloParziale);
@@ -142,11 +129,10 @@ public class ServizioProiezioniImpl extends UnicastRemoteObject implements Servi
             return filmDAO.cercaPerTitolo(titoloParziale);
         } catch (SQLException e) {
             LogServer.esito("Proiezioni", "cercaFilmPerTitolo ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante la ricerca film", e);
+            throw LogServer.erroreRemoto("Errore durante la ricerca film", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public List<LocalTime> finestreLibere(LocalDate giorno, int durataMinuti,
                                           LocalDateTime dataOraProiezioneDaEscludere) throws RemoteException {
@@ -156,7 +142,7 @@ public class ServizioProiezioniImpl extends UnicastRemoteObject implements Servi
             return proiezioneDAO.calcolaFinestreLibere(giorno, durataMinuti, dataOraProiezioneDaEscludere);
         } catch (SQLException e) {
             LogServer.esito("Proiezioni", "finestreLibere ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante il calcolo finestre libere", e);
+            throw LogServer.erroreRemoto("Errore durante il calcolo finestre libere", e);
         }
     }
 }

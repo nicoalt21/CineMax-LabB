@@ -3,6 +3,7 @@
  */
 package cinemax.client.controller.proiezionista;
 
+import cinemax.client.controller.shared.BaseLayoutController;
 import cinemax.client.controller.shared.DashboardBaseController;
 import cinemax.client.gui.component.CampoConEtichetta;
 import cinemax.client.gui.navigation.GestoreScene;
@@ -59,6 +60,7 @@ public class CreaProiezioneController extends DashboardBaseController {
     private static final LocalDateTime NESSUNA_ESCLUSIONE = null;
 
     private final GestoreScene gestoreScene;
+    private final BaseLayoutController layout;
 
     private final VBox radice = new VBox(15);
 
@@ -80,8 +82,9 @@ public class CreaProiezioneController extends DashboardBaseController {
     // Evita rientri durante l'aggiornamento programmatico dei suggerimenti.
     private boolean aggiornamentoInterno = false;
 
-    public CreaProiezioneController(GestoreScene gestoreScene) {
+    public CreaProiezioneController(GestoreScene gestoreScene, BaseLayoutController layout) {
         this.gestoreScene = gestoreScene;
+        this.layout = layout;
     }
 
     private static TextField nuovoTextField(String prompt) {
@@ -165,7 +168,19 @@ public class CreaProiezioneController extends DashboardBaseController {
 
             @Override
             public Film fromString(String s) {
-                return null; // la risoluzione avviene in verificaTitolo()
+                // Al commit di focus la ComboBox ricava il value da qui: se tornasse null
+                // svuoterebbe l'editor. Risolvo il testo nel Film con titolo corrispondente
+                // (case-insensitive) tra gli item gia' caricati.
+                if (s == null || s.isBlank() || selettoreTitolo.getItems() == null) {
+                    return null;
+                }
+                String norm = normalizza(s);
+                for (Film f : selettoreTitolo.getItems()) {
+                    if (normalizza(f.getTitolo()).equals(norm)) {
+                        return f;
+                    }
+                }
+                return null;
             }
         });
         selettoreTitolo.setCellFactory(lv -> new javafx.scene.control.ListCell<Film>() {
@@ -442,9 +457,11 @@ public class CreaProiezioneController extends DashboardBaseController {
             boolean ok = gestoreScene.getFornitoreServizi()
                     .getServizioProiezioni().aggiungiProiezione(nuova);
             if (ok) {
-                mostraSuccesso("Proiezione creata: " + filmRiconosciuto.getTitolo()
-                        + " il " + data + " alle " + ora.format(FORMATO_ORA) + ".");
+                String titoloFilm = filmRiconosciuto.getTitolo();
+                // Pulisco subito il form (così è pronto per un nuovo inserimento) e mostro
+                // un feedback evidente in overlay, coerente col resto dell'app.
                 aggiornaDati();
+                layout.notificaProiezioneCreata(titoloFilm, data, ora.format(FORMATO_ORA));
             } else {
                 // Caso raro: l'orario scelto è diventato occupato fra il calcolo e il submit.
                 mostraErrore("Creazione rifiutata: l'orario non è più disponibile. Riprova.");
@@ -477,13 +494,6 @@ public class CreaProiezioneController extends DashboardBaseController {
 
     private void mostraErrore(String messaggio) {
         labelMessaggio.getStyleClass().setAll("errore-generale");
-        labelMessaggio.setText(messaggio);
-        labelMessaggio.setManaged(true);
-        labelMessaggio.setVisible(true);
-    }
-
-    private void mostraSuccesso(String messaggio) {
-        labelMessaggio.getStyleClass().setAll("testo-secondario");
         labelMessaggio.setText(messaggio);
         labelMessaggio.setManaged(true);
         labelMessaggio.setVisible(true);

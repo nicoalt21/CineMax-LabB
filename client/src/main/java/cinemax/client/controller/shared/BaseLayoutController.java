@@ -426,9 +426,10 @@ public class BaseLayoutController {
         mostraDashboardRicerca();
     }
 
-    // Carica la schermata "Crea proiezione" del proiezionista.
+    // Carica la schermata "Crea proiezione" del proiezionista. Riceve this come callback
+    // per poter mostrare, dopo la creazione, il feedback in overlay.
     private void mostraCreaProiezione() {
-        CreaProiezioneController crea = new CreaProiezioneController(gestoreScene);
+        CreaProiezioneController crea = new CreaProiezioneController(gestoreScene, this);
         crea.setUtente(utenteLoggato);
         crea.inizializza();
         impostaContenutoCentrale(crea.getRoot());
@@ -450,6 +451,16 @@ public class BaseLayoutController {
                 "Film \"" + titoloFilm + "\" creato con successo.\nVuoi creare anche una proiezione per questo film?",
                 "Sì, crea proiezione", "No, grazie",
                 this::mostraCreaProiezione,
+                null);
+    }
+
+    // Chiamato dal CreaProiezioneController dopo aver creato una proiezione: mostra un
+    // feedback evidente in overlay e propone di vedere le proiezioni o crearne un'altra.
+    public void notificaProiezioneCreata(String titoloFilm, java.time.LocalDate data, String ora) {
+        mostraScelta(
+                "Proiezione creata con successo!\n\"" + titoloFilm + "\" il " + data + " alle " + ora + ".",
+                "Vai alle proiezioni", "Crea un'altra",
+                this::mostraGestioneProiezioni,
                 null);
     }
 

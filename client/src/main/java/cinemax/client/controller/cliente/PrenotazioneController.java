@@ -26,24 +26,16 @@ import java.rmi.RemoteException;
 import java.time.format.DateTimeFormatter;
 
 /*
- Schermata di prenotazione di una proiezione, costruita interamente in codice Java
- (niente FXML, come il resto della UI) e caricata nell'area centrale del
- BaseLayoutController, esattamente come le altre dashboard del Cliente.
+ Schermata di prenotazione di una proiezione, caricata nell'area centrale del
+ BaseLayoutController come le altre dashboard del Cliente.
 
- Flusso:
-   1. la dashboard di ricerca chiama BaseLayoutController.mostraPrenotazione(proiezione);
-   2. qui mostriamo il riepilogo della proiezione (riusando CardProiezione in sola
-      lettura), un selettore del numero di biglietti (1..posti liberi) e il totale
-      aggiornato in tempo reale;
-   3. alla conferma si chiede conferma in-app e si invoca creaPrenotazione sul servizio
-      remoto; in caso di successo si mostra il codice generato dal server e si va a
-      "Le mie prenotazioni"; in caso di fallimento si resta qui con un messaggio.
+ Mostra il riepilogo della proiezione (CardProiezione in sola lettura), un selettore del
+ numero di biglietti (1..posti liberi) e il totale aggiornato. Alla conferma invoca
+ creaPrenotazione: in caso di successo mostra il codice e porta a "Le mie prenotazioni",
+ altrimenti resta qui con un messaggio.
 
- Controlli di sicurezza lato client (la verifica forte resta sul server):
-   - solo clienti registrati: il Guest non arriva qui perché il bottone "Prenota" è
-     bloccato dal layout; in più, per difesa, ricontrolliamo isGuest();
-   - limite d'età del film tramite FasciaEta;
-   - numero biglietti compreso tra 1 e i posti liberi.
+ Controlli lato client (la verifica forte resta sul server): blocco per Guest, limite
+ d'eta del film, numero biglietti tra 1 e i posti liberi.
  */
 public class PrenotazioneController extends DashboardBaseController {
 

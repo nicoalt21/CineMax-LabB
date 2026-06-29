@@ -20,16 +20,8 @@ public class PrenotazioneDAO {
 
     private static final int CAPIENZA_MASSIMA = 200;
 
-    /**
-     * Crea una nuova prenotazione in modo atomico.
-     * Usa transazione con FOR UPDATE per prevenire overbooking concorrente.
-     *
-     * @param dataOraProiezione data_ora della proiezione
-     * @param usernameCliente   username del cliente
-     * @param numeroBiglietti   numero di biglietti richiesti
-     * @return prenotazione creata con codice univoco, null se fallisce
-     * @throws SQLException in caso di errore DB
-     */
+    // Crea una prenotazione in modo atomico (transazione con FOR UPDATE per evitare
+    // overbooking concorrente). Ritorna la prenotazione creata, o null se non valida.
     public Prenotazione creaPrenotazione(LocalDateTime dataOraProiezione,
                                          String usernameCliente,
                                          int numeroBiglietti) throws SQLException {
@@ -45,15 +37,6 @@ public class PrenotazioneDAO {
         return ottieniPrenotazione(codice);
     }
 
-    /**
-     * Logica interna di creazione prenotazione con transazione.
-     *
-     * @param utente            utente che prenota
-     * @param dataOraProiezione data_ora della proiezione
-     * @param numeroBiglietti   numero di biglietti
-     * @return codice univoco generato, null se fallisce
-     * @throws SQLException in caso di errore DB
-     */
     private String creaPrenotazioneInterna(Utente utente, LocalDateTime dataOraProiezione,
                                            int numeroBiglietti) throws SQLException {
         try (Connection conn = DBconnection.getConnection()) {
@@ -71,18 +54,34 @@ public class PrenotazioneDAO {
                 try (PreparedStatement ps = conn.prepareStatement(lockSql)) {
                     ps.setTimestamp(1, Timestamp.valueOf(dataOraProiezione));
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (!rs.next()) return null;
-                        if (!dataOraProiezione.isAfter(LocalDateTime.now())) return null;
+                        if (!rs.next()) {
+                            System.out.println("[PRENOTAZIONE] RIFIUTATA: proiezione inesistente per data_ora="
+                                    + dataOraProiezione);
+                            return null;
+                        }
+                        if (!dataOraProiezione.isAfter(LocalDateTime.now())) {
+                            System.out.println("[PRENOTAZIONE] RIFIUTATA: proiezione nel passato data_ora="
+                                    + dataOraProiezione + " (adesso=" + LocalDateTime.now() + ")");
+                            return null;
+                        }
                         postiOccupati = rs.getInt("posti_occupati");
                         etaMinima     = rs.getInt("eta_minima");
                     }
                 }
 
                 int postiLiberi = CAPIENZA_MASSIMA - postiOccupati;
-                if (numeroBiglietti > postiLiberi) return null;
+                if (numeroBiglietti > postiLiberi) {
+                    System.out.println("[PRENOTAZIONE] RIFIUTATA: posti insufficienti richiesti="
+                            + numeroBiglietti + " liberi=" + postiLiberi);
+                    return null;
+                }
 
                 int etaCliente = utente.calcolaEta();
-                if (etaCliente != -1 && etaCliente < etaMinima) return null;
+                if (etaCliente != -1 && etaCliente < etaMinima) {
+                    System.out.println("[PRENOTAZIONE] RIFIUTATA: et\u00e0 cliente=" + etaCliente
+                            + " < et\u00e0 minima film=" + etaMinima);
+                    return null;
+                }
 
                 String codice = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
@@ -110,13 +109,6 @@ public class PrenotazioneDAO {
         }
     }
 
-    /**
-     * Recupera una prenotazione per codice univoco.
-     *
-     * @param codice codice della prenotazione
-     * @return prenotazione trovata, null se non esiste
-     * @throws SQLException in caso di errore DB
-     */
     public Prenotazione ottieniPrenotazione(String codice) throws SQLException {
         String sql = "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
                 "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +
@@ -140,13 +132,6 @@ public class PrenotazioneDAO {
         }
     }
 
-    /**
-     * Restituisce tutte le prenotazioni di un cliente.
-     *
-     * @param usernameCliente username del cliente
-     * @return lista delle prenotazioni
-     * @throws SQLException in caso di errore DB
-     */
     public List<Prenotazione> trovaPerCliente(String usernameCliente) throws SQLException {
         String sql = "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
                 "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +
@@ -173,15 +158,8 @@ public class PrenotazioneDAO {
         return risultati;
     }
 
-    /**
-     * Modifica la data di una prenotazione.
-     * Entrambe le date (vecchia e nuova) devono essere future.
-     *
-     * @param codice       codice della prenotazione
-     * @param nuovaDataOra nuova data_ora della proiezione
-     * @return true se modificata, false se vincoli violati
-     * @throws SQLException in caso di errore DB
-     */
+    // Sposta una prenotazione su una nuova proiezione. Entrambe le date (vecchia e nuova)
+    // devono essere future; ritorna false se un vincolo è violato.
     public boolean modificaData(String codice, LocalDateTime nuovaDataOra) throws SQLException {
         Prenotazione daModificare = ottieniPrenotazione(codice);
         if (daModificare == null) return false;
@@ -205,13 +183,7 @@ public class PrenotazioneDAO {
         }
     }
 
-    /**
-     * Cancella una prenotazione solo se la proiezione è futura.
-     *
-     * @param codice codice della prenotazione
-     * @return true se cancellata, false se proiezione passata o non trovata
-     * @throws SQLException in caso di errore DB
-     */
+    // Cancella una prenotazione solo se la proiezione è ancora futura.
     public boolean cancella(String codice) throws SQLException {
         Prenotazione p = ottieniPrenotazione(codice);
         if (p == null) return false;
@@ -227,13 +199,7 @@ public class PrenotazioneDAO {
         }
     }
 
-    /**
-     * Cerca prenotazioni per criteri combinabili.
-     *
-     * @param criteri criteri di ricerca
-     * @return lista di prenotazioni corrispondenti
-     * @throws SQLException in caso di errore DB
-     */
+    // Cerca prenotazioni per criteri combinabili (usata dal bigliettaio).
     public List<Prenotazione> cerca(CriteriRicercaPrenotazione criteri) throws SQLException {
         StringBuilder sql = new StringBuilder(
                 "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
@@ -292,12 +258,6 @@ public class PrenotazioneDAO {
         return risultati;
     }
 
-    /**
-     * Restituisce le prenotazioni per la data odierna.
-     *
-     * @return lista delle prenotazioni di oggi
-     * @throws SQLException in caso di errore DB
-     */
     public List<Prenotazione> trovaDiOggi() throws SQLException {
         String sql = "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
                 "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +

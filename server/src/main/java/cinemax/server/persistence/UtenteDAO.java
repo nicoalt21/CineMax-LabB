@@ -11,14 +11,8 @@ import java.time.LocalDate;
  */
 public class UtenteDAO {
 
-    /**
-     * Registra un nuovo cliente nel sistema.
-     * La password nell'oggetto utente deve essere già hashata lato client.
-     *
-     * @param utente utente da registrare con password già hashata
-     * @return true se registrato, false se username già esistente
-     * @throws SQLException in caso di errore DB
-     */
+    // La password nell'oggetto utente deve essere già hashata lato client.
+    // Ritorna false se lo username è già in uso.
     public boolean registraCliente(Utente utente) throws SQLException {
         if (esiste(utente.getUsername())) return false;
 
@@ -42,14 +36,6 @@ public class UtenteDAO {
         }
     }
 
-    /**
-     * Autentica un utente confrontando username e hash della password.
-     *
-     * @param username     username dell'utente
-     * @param passwordHash password già hashata lato client con SHA-256
-     * @return utente autenticato senza passwordCifrata, null se credenziali errate
-     * @throws SQLException in caso di errore DB
-     */
     public Utente autenticaUtente(String username, String passwordHash) throws SQLException {
         String sql = "SELECT * FROM utenti WHERE username = ? AND password_hash = ?";
 
@@ -64,13 +50,7 @@ public class UtenteDAO {
         }
     }
 
-    /**
-     * Recupera un utente per username (senza verificare la password).
-     *
-     * @param username username da cercare
-     * @return utente trovato, null se non esiste
-     * @throws SQLException in caso di errore DB
-     */
+    // Recupera un utente per username senza verificarne la password.
     public Utente trovaPerId(String username) throws SQLException {
         String sql = "SELECT * FROM utenti WHERE username = ?";
 
@@ -84,13 +64,6 @@ public class UtenteDAO {
         }
     }
 
-    /**
-     * Verifica se un username esiste già nel sistema.
-     *
-     * @param username username da verificare
-     * @return true se esiste, false altrimenti
-     * @throws SQLException in caso di errore DB
-     */
     public boolean esiste(String username) throws SQLException {
         String sql = "SELECT 1 FROM utenti WHERE username = ?";
 
@@ -103,14 +76,7 @@ public class UtenteDAO {
         }
     }
 
-    /**
-     * Costruisce un oggetto Utente dal ResultSet.
-     * La passwordCifrata viene impostata a null — non deve mai uscire dal server.
-     *
-     * @param rs ResultSet posizionato sulla riga corrente
-     * @return oggetto Utente popolato
-     * @throws SQLException in caso di errore DB
-     */
+    // La passwordCifrata è impostata a null: non deve mai uscire dal server.
     private Utente creaUtente(ResultSet rs) throws SQLException {
         Date sqlDate = rs.getDate("data_nascita");
         LocalDate dataNascita = (sqlDate != null) ? sqlDate.toLocalDate() : null;

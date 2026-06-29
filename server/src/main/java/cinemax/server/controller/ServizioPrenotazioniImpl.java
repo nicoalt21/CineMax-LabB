@@ -18,17 +18,11 @@ public class ServizioPrenotazioniImpl extends UnicastRemoteObject implements Ser
 
     private final PrenotazioneDAO prenotazioneDAO;
 
-    /**
-     * Costruttore. Richiesto da UnicastRemoteObject.
-     *
-     * @throws RemoteException in caso di errore RMI
-     */
     public ServizioPrenotazioniImpl() throws RemoteException {
         super();
         this.prenotazioneDAO = new PrenotazioneDAO();
     }
 
-    /** {@inheritDoc} */
     @Override
     public Prenotazione creaPrenotazione(LocalDateTime dataOraProiezione,
                                          String usernameCliente,
@@ -43,11 +37,10 @@ public class ServizioPrenotazioniImpl extends UnicastRemoteObject implements Ser
             return creata;
         } catch (SQLException e) {
             LogServer.esito("Prenotazioni", "creaPrenotazione ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante la creazione prenotazione", e);
+            throw LogServer.erroreRemoto("Errore durante la creazione prenotazione", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public List<Prenotazione> visualizzaPrenotazioniCliente(String usernameCliente) throws RemoteException {
         LogServer.richiesta("Prenotazioni", "visualizzaPrenotazioniCliente cliente=" + usernameCliente);
@@ -58,11 +51,10 @@ public class ServizioPrenotazioniImpl extends UnicastRemoteObject implements Ser
             return lista;
         } catch (SQLException e) {
             LogServer.esito("Prenotazioni", "visualizzaPrenotazioniCliente ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante la visualizzazione prenotazioni", e);
+            throw LogServer.erroreRemoto("Errore durante la visualizzazione prenotazioni", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public boolean modificaPrenotazione(String codicePrenotazione,
                                         LocalDateTime nuovaDataOra) throws RemoteException {
@@ -74,11 +66,10 @@ public class ServizioPrenotazioniImpl extends UnicastRemoteObject implements Ser
             return ok;
         } catch (SQLException e) {
             LogServer.esito("Prenotazioni", "modificaPrenotazione ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante la modifica prenotazione", e);
+            throw LogServer.erroreRemoto("Errore durante la modifica prenotazione", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public boolean cancellaPrenotazione(String codicePrenotazione) throws RemoteException {
         LogServer.richiesta("Prenotazioni", "cancellaPrenotazione codice=" + codicePrenotazione);
@@ -88,11 +79,10 @@ public class ServizioPrenotazioniImpl extends UnicastRemoteObject implements Ser
             return ok;
         } catch (SQLException e) {
             LogServer.esito("Prenotazioni", "cancellaPrenotazione ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante la cancellazione prenotazione", e);
+            throw LogServer.erroreRemoto("Errore durante la cancellazione prenotazione", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public List<Prenotazione> cercaPrenotazioni(CriteriRicercaPrenotazione criteri) throws RemoteException {
         LogServer.richiesta("Prenotazioni", "cercaPrenotazioni (bigliettaio)");
@@ -103,11 +93,10 @@ public class ServizioPrenotazioniImpl extends UnicastRemoteObject implements Ser
             return lista;
         } catch (SQLException e) {
             LogServer.esito("Prenotazioni", "cercaPrenotazioni ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante la ricerca prenotazioni", e);
+            throw LogServer.erroreRemoto("Errore durante la ricerca prenotazioni", e);
         }
     }
 
-    /** {@inheritDoc} */
     @Override
     public List<Prenotazione> visualizzaPrenotazioniOggi() throws RemoteException {
         LogServer.richiesta("Prenotazioni", "visualizzaPrenotazioniOggi (bigliettaio)");
@@ -118,7 +107,7 @@ public class ServizioPrenotazioniImpl extends UnicastRemoteObject implements Ser
             return lista;
         } catch (SQLException e) {
             LogServer.esito("Prenotazioni", "visualizzaPrenotazioniOggi ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante la visualizzazione prenotazioni di oggi", e);
+            throw LogServer.erroreRemoto("Errore durante la visualizzazione prenotazioni di oggi", e);
         }
     }
 }

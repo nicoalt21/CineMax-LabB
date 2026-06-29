@@ -28,7 +28,7 @@ public class ServizioAutenticazioneImpl extends UnicastRemoteObject implements S
             return u;
         } catch (SQLException e) {
             LogServer.esito("Autenticazione", "login ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante il login", e);
+            throw LogServer.erroreRemoto("Errore durante il login", e);
         }
     }
 
@@ -42,7 +42,7 @@ public class ServizioAutenticazioneImpl extends UnicastRemoteObject implements S
             return ok;
         } catch (SQLException e) {
             LogServer.esito("Autenticazione", "registraCliente ERRORE DB: " + e.getMessage());
-            throw new RemoteException("Errore durante la registrazione", e);
+            throw LogServer.erroreRemoto("Errore durante la registrazione", e);
         }
     }
 

@@ -157,9 +157,16 @@ public class DashboardClienteController extends DashboardBaseController {
     private void eseguiRicerca(CriteriRicercaProiezione criteri) {
         labelStato.setText("Ricerca in corso...");
 
-        // Richiesta al servizio remoto (oggi: implementazione finta in memoria).
-        // Se il server non risponde arriva una RemoteException: per ora la
-        // segnaliamo nello stato; più avanti diventerà il banner "offline".
+        // Per cliente e guest non ha senso mostrare proiezioni già avvenute (il dataset
+        // contiene anche storico): se l'utente non ha indicato una data "Dal", forziamo
+        // il pavimento a oggi. Il proiezionista invece può vedere anche lo storico.
+        boolean soloFuture = isGuest() || utenteLoggato.getRuolo() == Ruolo.CLIENTE;
+        if (soloFuture && criteri != null && criteri.getDataInizio() == null) {
+            criteri.setDataInizio(LocalDate.now());
+        }
+
+        // Richiesta al servizio remoto. Se il server non risponde arriva una
+        // RemoteException: la segnaliamo nello stato.
         try {
             List<Proiezione> risultati =
                     gestoreScene.getFornitoreServizi()
@@ -299,6 +306,13 @@ public class DashboardClienteController extends DashboardBaseController {
                     if (!FasciaEta.puoPrenotare(utenteLoggato.getDataNascita(), etaMinima)) {
                         card.bloccaPrenotazione("Vietato ai minori di " + etaMinima + " anni");
                     }
+                }
+
+                // Blocco proiezioni passate: non ha senso (ed è rifiutato dal server)
+                // prenotare una proiezione già iniziata/conclusa. Il dataset contiene
+                // anche proiezioni storiche, quindi questo caso è reale.
+                if (!p.getDataOra().isAfter(java.time.LocalDateTime.now())) {
+                    card.bloccaPrenotazione("Proiezione già avvenuta");
                 }
             }
 

@@ -13,34 +13,23 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Stato condiviso della connessione al server, osservabile dalla UI.
- * <p>
- * Tiene un identificativo di sessione ({@link #getIdClient()}) generato una
- * volta all'avvio, una property booleana {@code connesso} a cui la UI può
- * legarsi, e un heartbeat periodico verso {@link ServizioConnessione#ping}.
- * <ul>
- *   <li>finché il ping va a buon fine, {@code connesso} resta {@code true};</li>
- *   <li>al primo ping fallito (server irraggiungibile) diventa {@code false};</li>
- *   <li>se il server torna a rispondere, torna {@code true}.</li>
- * </ul>
- * La property viene aggiornata sempre sul thread JavaFX, così l'eventuale label
- * legata può cambiare testo/colore senza problemi di concorrenza.
- * <p>
- * È un singleton di sessione: una sola istanza per esecuzione del client,
- * accessibile via {@link #getInstance()}.
+ * Singleton di sessione con un id client generato all'avvio, una property {@code connesso}
+ * a cui la UI si lega, e un heartbeat periodico verso {@link ServizioConnessione#ping}:
+ * finché il ping riesce {@code connesso} è true, al primo fallimento diventa false, e torna
+ * true se il server ridiventa raggiungibile. La property è sempre aggiornata sul thread JavaFX.
  */
 public final class StatoConnessione {
 
     private static final StatoConnessione ISTANZA = new StatoConnessione();
 
-    /** Intervallo tra un heartbeat e il successivo. */
     private static final long INTERVALLO_PING_SEC = 5;
 
-    /** Identificativo opaco di questa sessione client, mostrato nei log del server. */
+    // Id opaco di questa sessione, mostrato nei log del server.
     private final String idClient = "client-" + UUID.randomUUID().toString().substring(0, 8);
 
     private final ReadOnlyBooleanWrapper connesso = new ReadOnlyBooleanWrapper(false);
 
-    /** Servizio remoto usato per gli heartbeat; null finché non si è connessi. */
+    // Stub remoto per gli heartbeat; null finché non si è connessi.
     private volatile ServizioConnessione servizioConnessione;
 
     private ScheduledExecutorService scheduler;
@@ -56,7 +45,7 @@ public final class StatoConnessione {
         return idClient;
     }
 
-    /** Property osservabile: {@code true} se il client è collegato al server. */
+    // Property osservabile: true se il client è collegato al server.
     public ReadOnlyBooleanProperty connessoProperty() {
         return connesso.getReadOnlyProperty();
     }
@@ -65,17 +54,11 @@ public final class StatoConnessione {
         return connesso.get();
     }
 
-    /**
-     * Avvia il monitoraggio: registra il client presso il server (che lo stampa
-     * a terminale) e fa partire l'heartbeat periodico. Da chiamare una volta,
-     * appena ottenuto lo stub {@link ServizioConnessione} reale.
-     *
-     * @param servizio stub remoto del servizio di connessione
-     * @throws RemoteException se la registrazione iniziale fallisce
-     */
+    // Registra il client presso il server (che lo stampa) e avvia l'heartbeat periodico.
+    // Da chiamare una volta, appena ottenuto lo stub reale.
     public void avviaMonitoraggio(ServizioConnessione servizio) throws RemoteException {
         this.servizioConnessione = servizio;
-        servizio.registraConnessione(idClient); // il server stampa la connessione
+        servizio.registraConnessione(idClient);
         impostaConnesso(true);
 
         if (scheduler == null) {
@@ -89,7 +72,7 @@ public final class StatoConnessione {
         }
     }
 
-    /** Un singolo battito dell'heartbeat: aggiorna lo stato in base all'esito. */
+    // Un singolo battito: aggiorna lo stato in base all'esito del ping.
     private void battito() {
         ServizioConnessione s = servizioConnessione;
         if (s == null) {
@@ -104,7 +87,7 @@ public final class StatoConnessione {
         }
     }
 
-    /** Aggiorna la property sul thread JavaFX, evitando notifiche ridondanti. */
+    // Aggiorna la property sul thread JavaFX, evitando notifiche ridondanti.
     private void impostaConnesso(boolean valore) {
         Platform.runLater(() -> {
             if (connesso.get() != valore) {
@@ -113,10 +96,7 @@ public final class StatoConnessione {
         });
     }
 
-    /**
-     * Comunica al server la chiusura della sessione (best-effort) e ferma
-     * l'heartbeat. Da chiamare alla chiusura dell'applicazione.
-     */
+    // Comunica al server la chiusura (best-effort) e ferma l'heartbeat.
     public void chiudi() {
         if (scheduler != null) {
             scheduler.shutdownNow();

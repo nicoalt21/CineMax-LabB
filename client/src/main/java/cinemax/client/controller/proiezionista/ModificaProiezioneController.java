@@ -35,22 +35,12 @@ import java.util.List;
 
 /*
  Schermata "Modifica proiezione" del proiezionista, gemella di CreaProiezioneController ma
- pensata per cambiare una proiezione esistente. Costruita interamente in codice Java, con
- la stessa formattazione (CampoConEtichetta in griglia a due colonne).
+ con i campi precompilati dai valori attuali. Il calcolo delle finestre libere esclude la
+ proiezione in modifica (cosi il suo slot resta selezionabile) e la conferma invoca
+ ServizioProiezioni.modificaProiezione(dataOraAttuale, idFilm, nuovaDataOra, costo).
 
- Differenze rispetto a "Crea":
-  - i campi partono precompilati con i valori attuali della proiezione (film, costo, data,
-    orario);
-  - il calcolo delle finestre libere ESCLUDE la proiezione che si sta modificando (così il
-    suo stesso slot resta disponibile), passando la sua data_ora a finestreLibere(...);
-  - la conferma invoca ServizioProiezioni.modificaProiezione(dataOraAttuale, idFilm,
-    nuovaDataOra, costo).
-
- Vincoli di integrità (verificati dal server, anticipati qui dove possibile):
-  - una proiezione CON prenotazioni non è modificabile: il server rifiuta e qui mostriamo
-    il motivo;
-  - la nuova collocazione non deve sovrapporsi ad altre proiezioni (oltre a se stessa);
-  - tutti i campi sono obbligatori e il titolo deve corrispondere a un film esistente.
+ Vincoli (verificati dal server, anticipati qui dove possibile): una proiezione con
+ prenotazioni non e modificabile; la nuova collocazione non deve sovrapporsi ad altre.
  */
 public class ModificaProiezioneController extends DashboardBaseController {
 
@@ -206,6 +196,18 @@ public class ModificaProiezioneController extends DashboardBaseController {
 
             @Override
             public Film fromString(String s) {
+                // La ComboBox al commit di focus ricava il value da qui: ritornare null
+                // azzererebbe value ed editor. Risolvo quindi il testo nel Film con titolo
+                // corrispondente (case-insensitive) tra gli item caricati.
+                if (s == null || s.isBlank() || selettoreTitolo.getItems() == null) {
+                    return null;
+                }
+                String norm = normalizza(s);
+                for (Film f : selettoreTitolo.getItems()) {
+                    if (normalizza(f.getTitolo()).equals(norm)) {
+                        return f;
+                    }
+                }
                 return null;
             }
         });
