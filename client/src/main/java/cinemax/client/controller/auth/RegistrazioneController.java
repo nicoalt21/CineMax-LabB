@@ -216,13 +216,21 @@ public class RegistrazioneController {
                 RUOLO_PREDEFINITO
         );
 
-        // TODO: invio al server, es. ConnettoreServer.eseguiRegistrazione(nuovoUtente).
-        // Il server restituisce esito; se l'username è già in uso, chiamare:
-        //   mostraErroreUsernameInUso();
-        // In caso di successo, navigare al login o caricare la dashboard:
-        //   gestoreScene.vaiALogin();
-        System.out.println("TODO registrazione utente: " + nuovoUtente.getUsername()
-                + " (" + nuovoUtente.getRuolo() + ")");
+        // Invio al server: registrazione del nuovo cliente. Il servizio restituisce
+        // false se lo username e' gia' in uso. Una RemoteException indica server non
+        // raggiungibile. In caso di successo si torna al login per accedere.
+        try {
+            boolean registrato = gestoreScene.getFornitoreServizi()
+                    .getServizioAutenticazione()
+                    .registraCliente(nuovoUtente);
+            if (registrato) {
+                gestoreScene.vaiALogin();
+            } else {
+                mostraErroreUsernameInUso();
+            }
+        } catch (java.rmi.RemoteException ex) {
+            mostraErroreGenerale("Server non raggiungibile. Riprova piu' tardi.");
+        }
     }
 
     // Da invocare quando il server segnala che lo username è già registrato.

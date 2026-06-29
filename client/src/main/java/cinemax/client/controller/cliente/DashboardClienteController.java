@@ -47,7 +47,7 @@ public class DashboardClienteController extends DashboardBaseController {
     private final GestoreScene gestoreScene;
     private final BaseLayoutController layout;
 
-    private final VBox radice = new VBox(15);
+    private final VBox radice = new VBox(16);
     private final FilterBarComponent barraFiltri = new FilterBarComponent();
     private final VBox contenitoreRisultati = new VBox(12);
     private final Label labelStato = new Label();
@@ -83,7 +83,7 @@ public class DashboardClienteController extends DashboardBaseController {
 
     @Override
     public void inizializza() {
-        radice.setPadding(new Insets(20));
+        radice.setPadding(new Insets(16));
         radice.getStyleClass().add("sfondo-principale");
 
         // Titolo adattato al ruolo: il proiezionista cerca e modifica, non prenota.
@@ -175,8 +175,10 @@ public class DashboardClienteController extends DashboardBaseController {
             ultimiRisultati = (risultati == null) ? new ArrayList<>() : new ArrayList<>(risultati);
             mostraRisultati();
         } catch (RemoteException e) {
-            contenitoreRisultati.getChildren().clear();
+            mostraStatoVuoto("Server non raggiungibile",
+                    "Controlla la connessione e riprova la ricerca.");
             labelStato.setText("Server non raggiungibile. Riprova.");
+            barraPaginazione.aggiorna(1, 1);
         }
     }
 
@@ -235,7 +237,8 @@ public class DashboardClienteController extends DashboardBaseController {
     // effettivo delle card avviene in renderPagina().
     private void mostraRisultati() {
         if (ultimiRisultati == null || ultimiRisultati.isEmpty()) {
-            contenitoreRisultati.getChildren().clear();
+            mostraStatoVuoto("Nessuna proiezione trovata",
+                    "Prova a modificare i filtri o ad ampliare l'intervallo di date.");
             labelStato.setText("Nessuna proiezione trovata.");
             barraPaginazione.aggiorna(1, 1); // nasconde la barra
             return;
@@ -284,14 +287,17 @@ public class DashboardClienteController extends DashboardBaseController {
             CardProiezione card = new CardProiezione();
             card.compilaDatiProiezione(p, ruolo);
 
-            // Click sull'intera card -> dettagli proiezione (consentito anche al Guest).
-            card.setOnMouseClicked(e -> mostraDettagliProiezione(p));
+            // Click o INVIO/SPAZIO sulla card -> dettagli proiezione (anche per il Guest).
+            card.setAzioneCard(this::mostraDettagliProiezione);
 
             if (!isGuest() && ruolo == Ruolo.PROIEZIONISTA) {
                 // PROIEZIONISTA: il bottone principale è "Modifica" e apre la schermata di
                 // modifica della proiezione (NON la prenotazione). Non è un nodo riservato
                 // (il proiezionista è autenticato) e non c'è blocco età.
                 card.setAzionePrincipale(this::avviaModifica);
+                // Bottone secondario "Elimina": rimuove la proiezione dal palinsesto, previa
+                // conferma. Il server rifiuta l'eliminazione se esistono prenotazioni.
+                card.setAzioneSecondaria(this::gestisciEliminazione);
             } else {
                 // CLIENTE / GUEST: il bottone principale è "Prenota". Disponibile a tutti
                 // come bottone, ma il layout lo blocca per il Guest: lo registro come
@@ -324,12 +330,39 @@ public class DashboardClienteController extends DashboardBaseController {
 
     // Apertura della schermata di dettaglio di una proiezione (login non necessario).
     private void mostraDettagliProiezione(Proiezione p) {
-        // NAVIGAZIONE
-        // Passo la proiezione selezionata alla schermata di dettaglio.
-        // L'utente corrente (puo' essere null = Guest) serve alla schermata per decidere
-        // se mostrare attivo o bloccato il bottone "Prenota".
-        // Esempio (quando la navigazione ai dettagli sarà pronta):
-        //   gestoreScene.vaiADettagliProiezione(p, utenteLoggato);
+        // Apre il pannello laterale destro dei dettagli, ospitato dal layout. E' consentito
+        // anche al Guest (sola consultazione): il bottone "Prenota" interno al pannello
+        // applica da se' i blocchi per Guest, eta' minima e proiezioni passate/esaurite.
+        layout.mostraDettagliProiezione(p);
+    }
+
+    /*
+     Mostra uno stato vuoto al posto dell'elenco delle card: un riquadro centrato con
+     un'icona discreta, un titolo e un sottotitolo esplicativo. Usato quando una ricerca
+     non produce risultati oppure quando il server non e' raggiungibile, cosi' l'area
+     risultati non resta semplicemente bianca senza spiegazione.
+    */
+    private void mostraStatoVuoto(String titolo, String sottotitolo) {
+        contenitoreRisultati.getChildren().clear();
+
+        Label icona = new Label("\uD83C\uDFAC"); // claqueta (emoji cinema)
+        icona.getStyleClass().add("stato-vuoto-icona");
+
+        Label titoloLbl = new Label(titolo);
+        titoloLbl.getStyleClass().add("stato-vuoto-titolo");
+        titoloLbl.setWrapText(true);
+
+        Label sottoLbl = new Label(sottotitolo);
+        sottoLbl.getStyleClass().add("stato-vuoto-sottotitolo");
+        sottoLbl.setWrapText(true);
+
+        VBox box = new VBox(8, icona, titoloLbl, sottoLbl);
+        box.setAlignment(Pos.CENTER);
+        box.getStyleClass().add("stato-vuoto");
+        box.setPadding(new Insets(64, 16, 64, 16));
+        box.setMaxWidth(Double.MAX_VALUE);
+
+        contenitoreRisultati.getChildren().add(box);
     }
 
     // Avvio del flusso di prenotazione (solo clienti registrati; per il Guest il bottone
@@ -344,5 +377,39 @@ public class DashboardClienteController extends DashboardBaseController {
     // della proiezione, che rispetta i vincoli di integrità lato server.
     private void avviaModifica(Proiezione p) {
         layout.mostraModificaProiezione(p);
+    }
+
+    /*
+     Eliminazione di una proiezione (solo proiezionista). Chiede conferma in-app, perche'
+     e' un'azione distruttiva, e solo dopo procede.
+    */
+    private void gestisciEliminazione(Proiezione p) {
+        String titolo = p.getFilm().getTitolo();
+        layout.mostraConferma(
+                "Vuoi eliminare la proiezione di \"" + titolo + "\"?",
+                () -> eseguiEliminazione(p));
+    }
+
+    /*
+     Esegue l'eliminazione sul server. Tre esiti:
+       - true:  proiezione eliminata, ricarico l'elenco (la card sparisce da sola);
+       - false: il server ha rifiutato perche' esistono prenotazioni per quella
+                proiezione, lo spiego con un avviso;
+       - RemoteException: server non raggiungibile.
+    */
+    private void eseguiEliminazione(Proiezione p) {
+        try {
+            boolean eliminata = gestoreScene.getFornitoreServizi()
+                    .getServizioProiezioni()
+                    .eliminaProiezione(p.getDataOra());
+            if (eliminata) {
+                aggiornaDati(); // ricarica: la proiezione eliminata non comparira' piu'
+            } else {
+                labelStato.setText("Impossibile eliminare: esistono prenotazioni "
+                        + "per questa proiezione.");
+            }
+        } catch (RemoteException e) {
+            labelStato.setText("Server non raggiungibile. Riprova.");
+        }
     }
 }

@@ -1,6 +1,3 @@
-/*
- * Autore: (compilare) - matricola: (compilare) - sede: VA/CO
- */
 package cinemax.client.gui.model;
 
 /**

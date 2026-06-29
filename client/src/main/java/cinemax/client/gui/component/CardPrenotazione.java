@@ -1,6 +1,3 @@
-/*
- * Autore: (compilare) - matricola: (compilare) - sede: VA/CO
- */
 package cinemax.client.gui.component;
 
 import cinemax.client.gui.util.FasciaEta;
@@ -56,7 +53,7 @@ public class CardPrenotazione extends VBox {
 
     public CardPrenotazione() {
         super(2);
-        setPadding(new Insets(7, 14, 7, 14));
+        setPadding(new Insets(8, 16, 8, 16));
         setMaxWidth(Double.MAX_VALUE);
         getStyleClass().add("card-proiezione");
 
@@ -128,12 +125,59 @@ public class CardPrenotazione extends VBox {
     public void setAzioneAnnulla(Consumer<Prenotazione> azione) {
         Button btnAnnulla = new Button("Annulla prenotazione");
         btnAnnulla.getStyleClass().add("bottone-secondario");
+        // Il click sul bottone non deve propagarsi alla card (che apre i dettagli).
+        btnAnnulla.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED,
+                javafx.event.Event::consume);
         btnAnnulla.setOnAction(e -> {
             if (azione != null && prenotazioneCorrente != null) {
                 azione.accept(prenotazioneCorrente);
             }
         });
         rigaAzioni.getChildren().add(btnAnnulla);
+    }
+
+    /*
+     Registra l'azione di modifica/spostamento (solo per le card attive). Mostra il
+     bottone "Modifica prenotazione". Per coerenza visiva il bottone modifica appare
+     prima di "Annulla" nella riga azioni.
+     */
+    public void setAzioneModifica(Consumer<Prenotazione> azione) {
+        Button btnModifica = new Button("Mod. prenotazione");
+        btnModifica.getStyleClass().add("bottone-primario");
+        btnModifica.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED,
+                javafx.event.Event::consume);
+        btnModifica.setOnAction(e -> {
+            if (azione != null && prenotazioneCorrente != null) {
+                azione.accept(prenotazioneCorrente);
+            }
+        });
+        // Inserisco in testa, cosi' l'ordine e' "Modifica" poi "Annulla".
+        rigaAzioni.getChildren().add(0, btnModifica);
+    }
+
+    /*
+     Registra l'azione associata all'intera card (apertura dei dettagli prenotazione).
+     Rende la card cliccabile col mouse e attivabile da tastiera (INVIO/SPAZIO). Usata
+     solo per le card attive: le passate restano in sola consultazione.
+     */
+    public void setAzioneCard(Consumer<Prenotazione> azione) {
+        setFocusTraversable(true);
+        setOnMouseClicked(e -> {
+            if (azione != null && prenotazioneCorrente != null) {
+                azione.accept(prenotazioneCorrente);
+            }
+        });
+        setOnKeyPressed(e -> {
+            switch (e.getCode()) {
+                case ENTER, SPACE -> {
+                    if (azione != null && prenotazioneCorrente != null) {
+                        azione.accept(prenotazioneCorrente);
+                        e.consume();
+                    }
+                }
+                default -> { }
+            }
+        });
     }
 
     // Colora il pallino in base alla fascia d'età e mostra il valore (es. "VM13").

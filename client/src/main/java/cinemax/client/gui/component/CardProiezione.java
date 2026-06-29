@@ -58,9 +58,12 @@ public class CardProiezione extends VBox {
 
     public CardProiezione() {
         super(2);
-        setPadding(new Insets(7, 14, 7, 14));
+        setPadding(new Insets(8, 16, 8, 16));
         setMaxWidth(Double.MAX_VALUE);
         getStyleClass().add("card-proiezione");
+        // La card e' raggiungibile con TAB e attivabile da tastiera (vedi setAzioneCard):
+        // serve sia per l'accessibilita' sia per far scattare lo stile :focused del tema.
+        setFocusTraversable(true);
 
         titoloLabel.getStyleClass().add("card-titolo");
         titoloLabel.setWrapText(true);
@@ -169,6 +172,11 @@ public class CardProiezione extends VBox {
     public void setAzionePrincipale(Consumer<Proiezione> azione) {
         bottonePrincipale.setManaged(true);
         bottonePrincipale.setVisible(true);
+        // Consuma il click del mouse cosi' da non farlo risalire alla card: premendo questo
+        // bottone (es. "Prenota") non deve scattare anche l'apertura dei dettagli, agganciata
+        // al click sull'intera card nel controller padre.
+        bottonePrincipale.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED,
+                javafx.event.Event::consume);
         bottonePrincipale.setOnAction(e -> {
             if (azione != null && proiezioneCorrente != null) {
                 azione.accept(proiezioneCorrente);
@@ -184,6 +192,9 @@ public class CardProiezione extends VBox {
         bottoneSecondario.setManaged(true);
         bottoneSecondario.setVisible(true);
         bottoneSecondario.setText("Elimina");
+        // Come per il bottone principale: il click non deve propagarsi alla card.
+        bottoneSecondario.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED,
+                javafx.event.Event::consume);
         bottoneSecondario.setOnAction(e -> {
             if (azione != null && proiezioneCorrente != null) {
                 azione.accept(proiezioneCorrente);
@@ -211,5 +222,30 @@ public class CardProiezione extends VBox {
 
     public Proiezione getProiezione() {
         return proiezioneCorrente;
+    }
+
+    /*
+     Registra l'azione associata all'intera card (apertura dei dettagli). Oltre al click
+     del mouse, la collega a INVIO e SPAZIO quando la card ha il focus da tastiera, cosi'
+     l'interazione e' completa anche senza mouse. Il controller padre passa qui la stessa
+     azione che userebbe in setOnMouseClicked.
+    */
+    public void setAzioneCard(Consumer<Proiezione> azione) {
+        setOnMouseClicked(e -> {
+            if (azione != null && proiezioneCorrente != null) {
+                azione.accept(proiezioneCorrente);
+            }
+        });
+        setOnKeyPressed(e -> {
+            switch (e.getCode()) {
+                case ENTER, SPACE -> {
+                    if (azione != null && proiezioneCorrente != null) {
+                        azione.accept(proiezioneCorrente);
+                        e.consume();
+                    }
+                }
+                default -> { }
+            }
+        });
     }
 }

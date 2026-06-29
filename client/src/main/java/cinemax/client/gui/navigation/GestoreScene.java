@@ -106,10 +106,6 @@ public class GestoreScene {
         impostaRadice(layout.getRoot());
     }
 
-    public void mostraFinestraModale(String percorsoFxml, Object datiDaPassare) {
-        // TODO: finestre modali (dettagli proiezione, conferme, ...).
-    }
-
     // Sostituisce la radice della Scene. Crea la Scene al primo utilizzo, agganciando il foglio di stile, poi riusa sempre la stessa.
     private void impostaRadice(Parent radice) {
         if (scena == null) {

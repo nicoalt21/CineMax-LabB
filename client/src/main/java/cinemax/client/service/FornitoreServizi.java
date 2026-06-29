@@ -1,6 +1,3 @@
-/*
- * Autore: (compilare) - matricola: (compilare) - sede: VA/CO
- */
 package cinemax.client.service;
 
 import cinemax.common.remote.ServizioAutenticazione;

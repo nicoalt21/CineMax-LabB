@@ -1,6 +1,7 @@
 package cinemax.client.controller.shared;
 
 import cinemax.client.gui.navigation.GestoreScene;
+import cinemax.client.gui.util.FasciaEta;
 import cinemax.client.service.StatoConnessione;
 import cinemax.client.controller.cliente.DashboardClienteController;
 import cinemax.client.controller.cliente.MiePrenotazioniController;
@@ -11,6 +12,7 @@ import cinemax.client.controller.proiezionista.CreaProiezioneController;
 import cinemax.client.controller.proiezionista.CreaFilmController;
 import cinemax.client.controller.proiezionista.ModificaProiezioneController;
 import cinemax.common.model.Proiezione;
+import cinemax.common.model.Prenotazione;
 import cinemax.common.model.Utente;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -19,7 +21,11 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
+import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
+import javafx.scene.shape.Circle;
 import javafx.geometry.Orientation;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -28,6 +34,8 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,6 +74,48 @@ public class BaseLayoutController {
     // Bottone Login/Logout (cambia testo e stile in base allo stato)
     private final Button btnAuth = new Button();
 
+    // Overlay dei dettagli di una proiezione (nascosto finche' non serve): uno strato
+    // sopra il contenuto con sfondo scurito, che centra il riquadro coi dati. Cliccando
+    // fuori dal riquadro (sullo sfondo) il pannello si chiude. Costruito una volta sola
+    // e ripopolato a ogni apertura.
+    private final StackPane overlayDettagli = new StackPane();
+    private final VBox riquadroDettagli = new VBox(16);
+    private final Label dettagliTitolo = new Label();
+    private final Circle dettagliPallinoEta = new Circle(7);
+    private final Label dettagliEta = new Label();
+    private final Label dettagliGenere = new Label();
+    private final Label dettagliRegista = new Label();
+    private final Label dettagliAnno = new Label();
+    private final Label dettagliDurata = new Label();
+    private final Label dettagliDataOra = new Label();
+    private final Label dettagliFine = new Label();
+    private final Label dettagliPrezzo = new Label();
+    private final Label dettagliPosti = new Label();
+    private final Label dettagliAvviso = new Label();
+    private final Button dettagliBtnPrenota = new Button("Prenota");
+    // Proiezione attualmente mostrata nel pannello dettagli.
+    private Proiezione proiezioneDettaglio;
+
+    // Overlay dei dettagli di una PRENOTAZIONE (nascosto finche' non serve): stesso schema
+    // dell'overlay dettagli proiezione (sfondo scurito + riquadro centrato). Mostra le info
+    // della prenotazione col codice ben visibile e copiabile, e i bottoni Annulla/Modifica.
+    private final StackPane overlayPrenotazione = new StackPane();
+    private final VBox riquadroPrenotazione = new VBox(16);
+    private final Label prenTitolo = new Label();
+    private final Circle prenPallinoEta = new Circle(7);
+    private final Label prenEta = new Label();
+    private final Label prenDataOra = new Label();
+    private final Label prenBiglietti = new Label();
+    private final Label prenTotale = new Label();
+    private final TextField prenCodice = new TextField();
+    private final Button prenBtnAnnulla = new Button("Annulla prenotazione");
+    private final Button prenBtnModifica = new Button("Mod. prenotazione");
+    // Prenotazione attualmente mostrata nell'overlay e callback per annulla/modifica,
+    // forniti da chi apre l'overlay (MiePrenotazioniController).
+    private Prenotazione prenotazioneDettaglio;
+    private java.util.function.Consumer<Prenotazione> azioneAnnullaPrenotazione;
+    private java.util.function.Consumer<Prenotazione> azioneModificaPrenotazione;
+
     // Indicatore di stato della connessione al server, sempre visibile nell'header.
     // Il testo e lo stile (verde/rosso) seguono StatoConnessione.connessoProperty().
     private final Label labelStatoConnessione = new Label();
@@ -83,6 +133,8 @@ public class BaseLayoutController {
         this.gestoreScene = gestoreScene;
         costruisciLayout();
         costruisciOverlayConferma();
+        costruisciOverlayDettagli();
+        costruisciOverlayPrenotazione();
     }
 
     private void costruisciLayout() {
@@ -239,6 +291,349 @@ public class BaseLayoutController {
     private void chiudiConferma() {
         overlayConferma.setVisible(false);
         overlayConferma.setManaged(false);
+    }
+
+    /*
+     Costruisce l'overlay centrale dei dettagli proiezione. Stessa struttura dell'overlay
+     di conferma: uno strato a tutta superficie con sfondo scurito che centra il riquadro
+     coi dati. Cliccando sullo sfondo (fuori dal riquadro) il pannello si chiude; il
+     contenuto e' dentro uno ScrollPane per restare comodo anche su finestre molto basse.
+     Resta nascosto finche' mostraDettagliProiezione(...) non lo popola e lo rende visibile.
+    */
+    private void costruisciOverlayDettagli() {
+        // Intestazione: titolo del film + bottone di chiusura "X".
+        dettagliTitolo.getStyleClass().add("titolo-principale");
+        dettagliTitolo.setStyle("-fx-font-size: 24px;");
+        dettagliTitolo.setWrapText(true);
+
+        dettagliEta.getStyleClass().add("testo-secondario");
+        HBox rigaEta = new HBox(8, dettagliPallinoEta, dettagliEta);
+        rigaEta.setAlignment(Pos.CENTER_LEFT);
+
+        Button btnChiudi = new Button("X");
+        btnChiudi.getStyleClass().add("bottone-collassa");
+        btnChiudi.setOnAction(e -> chiudiDettagli());
+        Region spintaChiudi = new Region();
+        HBox.setHgrow(spintaChiudi, Priority.ALWAYS);
+        HBox rigaIntestazione = new HBox(10, dettagliTitolo, spintaChiudi, btnChiudi);
+        rigaIntestazione.setAlignment(Pos.TOP_LEFT);
+
+        // Dettagli del film e della proiezione, ognuno su una riga etichettata.
+        for (Label l : new Label[]{dettagliGenere, dettagliRegista, dettagliAnno,
+                dettagliDurata, dettagliDataOra, dettagliFine, dettagliPrezzo, dettagliPosti}) {
+            l.getStyleClass().add("testo-normale");
+            l.setWrapText(true);
+        }
+
+        Separator sep = new Separator(Orientation.HORIZONTAL);
+        sep.getStyleClass().add("divisore-menu");
+
+        dettagliAvviso.getStyleClass().add("testo-secondario");
+        dettagliAvviso.setWrapText(true);
+        dettagliAvviso.setManaged(false);
+        dettagliAvviso.setVisible(false);
+
+        dettagliBtnPrenota.getStyleClass().add("bottone-primario");
+        dettagliBtnPrenota.setMaxWidth(Double.MAX_VALUE);
+        dettagliBtnPrenota.setOnAction(e -> {
+            Proiezione p = proiezioneDettaglio;
+            chiudiDettagli();
+            if (p != null) {
+                mostraPrenotazione(p);
+            }
+        });
+
+        riquadroDettagli.getStyleClass().add("riquadro-conferma");
+        riquadroDettagli.setPadding(new Insets(16));
+        riquadroDettagli.setPrefWidth(360);
+        riquadroDettagli.setMaxWidth(360);
+        // Riquadro centrato: si dimensiona sul contenuto, senza occupare tutta l'altezza.
+        riquadroDettagli.setMaxHeight(Region.USE_PREF_SIZE);
+        riquadroDettagli.getChildren().addAll(
+                rigaIntestazione, rigaEta, sep,
+                dettagliGenere, dettagliRegista, dettagliAnno, dettagliDurata,
+                dettagliDataOra, dettagliFine, dettagliPrezzo, dettagliPosti,
+                dettagliAvviso, dettagliBtnPrenota);
+
+        // Il riquadro sta dentro uno ScrollPane, utile solo se il contenuto supera
+        // l'altezza disponibile su finestre molto basse; il blocco resta comunque
+        // centrato grazie al wrapper sottostante.
+        ScrollPane scrollDettagli = new ScrollPane(riquadroDettagli);
+        scrollDettagli.setFitToWidth(true);
+        scrollDettagli.getStyleClass().add("area-scroll");
+        scrollDettagli.setMaxWidth(360);
+        scrollDettagli.setMaxHeight(Region.USE_PREF_SIZE);
+        // Lo ScrollPane non deve catturare il click destinato allo sfondo: lo lasciamo
+        // grande quanto il riquadro, cosi' il resto dell'overlay resta "sfondo".
+        StackPane.setAlignment(scrollDettagli, Pos.CENTER);
+
+        overlayDettagli.getStyleClass().add("overlay-conferma");
+        overlayDettagli.setAlignment(Pos.CENTER);
+        // Click sullo sfondo scurito (fuori dal riquadro) chiude il pannello. Il click
+        // sul riquadro non si propaga qui perche' lo consumiamo sul riquadro stesso.
+        overlayDettagli.setOnMouseClicked(e -> chiudiDettagli());
+        riquadroDettagli.setOnMouseClicked(javafx.event.Event::consume);
+        overlayDettagli.getChildren().add(scrollDettagli);
+        overlayDettagli.setVisible(false);
+        overlayDettagli.setManaged(false);
+
+        radice.getChildren().add(overlayDettagli);
+    }
+
+    /*
+     Mostra il pannello laterale coi dettagli della proiezione indicata. Consentito anche
+     al Guest (sola consultazione). Il bottone "Prenota" segue la stessa logica delle card:
+     bloccato per il Guest, per chi non ha l'eta' minima e per le proiezioni gia' avvenute o
+     esaurite; attivo e funzionante per il cliente idoneo. Per il proiezionista i dettagli
+     restano in sola lettura (nessun "Prenota").
+    */
+    public void mostraDettagliProiezione(Proiezione p) {
+        if (p == null) {
+            return;
+        }
+        this.proiezioneDettaglio = p;
+
+        cinemax.common.model.Film film = p.getFilm();
+        DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd/MM/yyyy - HH:mm");
+
+        dettagliTitolo.setText(film.getTitolo());
+
+        FasciaEta.Fascia fascia = FasciaEta.fasciaPerEta(film.getEtaMinima());
+        dettagliPallinoEta.getStyleClass().setAll("pallino-eta", fascia.getClasseCss());
+        dettagliEta.setText("Vietato ai minori di " + film.getEtaMinima() + " anni");
+
+        dettagliGenere.setText("Genere: " + film.getGenere());
+        dettagliRegista.setText("Regista: " + film.getRegista());
+        dettagliAnno.setText("Anno: " + film.getAnno());
+        dettagliDurata.setText("Durata: " + film.getDurataMinuti() + " min");
+        dettagliDataOra.setText("Inizio: " + p.getDataOra().format(formato));
+        LocalDateTime fine = p.getDataOraFine();
+        dettagliFine.setText("Fine prevista: " + (fine != null ? fine.format(formato) : "-"));
+        dettagliPrezzo.setText(String.format("Prezzo biglietto: %.2f \u20ac", p.getCostoBiglietto()));
+
+        int posti = p.getPostiLiberi();
+        dettagliPosti.getStyleClass().remove("testo-esaurito");
+        if (posti <= 0) {
+            dettagliPosti.setText("Esaurito");
+            dettagliPosti.getStyleClass().add("testo-esaurito");
+        } else {
+            dettagliPosti.setText(posti + (posti == 1 ? " posto libero" : " posti liberi"));
+        }
+
+        configuraBottonePrenotaDettagli(p, posti);
+
+        overlayDettagli.setVisible(true);
+        overlayDettagli.setManaged(true);
+    }
+
+    /*
+     Decide stato ed eventuale avviso del bottone "Prenota" nel pannello dettagli, con la
+     stessa logica usata dalle card: il proiezionista non prenota; il Guest e' invitato ad
+     accedere; chi non ha l'eta' minima o cerca una proiezione passata/esaurita trova il
+     bottone bloccato con la motivazione.
+    */
+    private void configuraBottonePrenotaDettagli(Proiezione p, int postiLiberi) {
+        dettagliAvviso.setManaged(false);
+        dettagliAvviso.setVisible(false);
+        dettagliBtnPrenota.setDisable(false);
+        dettagliBtnPrenota.setManaged(true);
+        dettagliBtnPrenota.setVisible(true);
+        Tooltip.install(dettagliBtnPrenota, null);
+
+        // Il proiezionista consulta i dettagli ma non prenota: niente bottone.
+        if (!isGuest && utenteLoggato != null
+                && utenteLoggato.getRuolo() == cinemax.common.model.Ruolo.PROIEZIONISTA) {
+            dettagliBtnPrenota.setManaged(false);
+            dettagliBtnPrenota.setVisible(false);
+            return;
+        }
+
+        // Guest: bottone visibile ma bloccato, con invito ad accedere.
+        if (isGuest) {
+            dettagliBtnPrenota.setDisable(true);
+            mostraAvvisoDettagli("Accedi come cliente per prenotare.");
+            return;
+        }
+
+        // Proiezione gia' avvenuta.
+        if (!p.getDataOra().isAfter(LocalDateTime.now())) {
+            dettagliBtnPrenota.setDisable(true);
+            mostraAvvisoDettagli("Proiezione gia' avvenuta: non prenotabile.");
+            return;
+        }
+
+        // Esaurita.
+        if (postiLiberi <= 0) {
+            dettagliBtnPrenota.setDisable(true);
+            mostraAvvisoDettagli("Proiezione esaurita.");
+            return;
+        }
+
+        // Blocco per eta' minima.
+        int etaMinima = p.getFilm().getEtaMinima();
+        if (!FasciaEta.puoPrenotare(utenteLoggato.getDataNascita(), etaMinima)) {
+            dettagliBtnPrenota.setDisable(true);
+            mostraAvvisoDettagli("Vietato ai minori di " + etaMinima + " anni.");
+        }
+    }
+
+    private void mostraAvvisoDettagli(String testo) {
+        dettagliAvviso.setText(testo);
+        dettagliAvviso.setManaged(true);
+        dettagliAvviso.setVisible(true);
+    }
+
+    private void chiudiDettagli() {
+        overlayDettagli.setVisible(false);
+        overlayDettagli.setManaged(false);
+        proiezioneDettaglio = null;
+    }
+
+    /*
+     Costruisce l'overlay centrale dei dettagli di una prenotazione. Stessa impostazione
+     dell'overlay dettagli proiezione: sfondo scurito che chiude al click, riquadro
+     centrato e scrollabile. Mostra le info della prenotazione, col codice in un campo di
+     sola lettura ma selezionabile (comodo da copiare), e i due bottoni Annulla/Modifica.
+     I bottoni delegano alle callback fornite da chi apre l'overlay.
+    */
+    private void costruisciOverlayPrenotazione() {
+        prenTitolo.getStyleClass().add("titolo-principale");
+        prenTitolo.setStyle("-fx-font-size: 24px;");
+        prenTitolo.setWrapText(true);
+
+        prenEta.getStyleClass().add("testo-secondario");
+        HBox rigaEta = new HBox(8, prenPallinoEta, prenEta);
+        rigaEta.setAlignment(Pos.CENTER_LEFT);
+
+        Button btnChiudi = new Button("X");
+        btnChiudi.getStyleClass().add("bottone-collassa");
+        btnChiudi.setOnAction(e -> chiudiDettagliPrenotazione());
+        Region spintaChiudi = new Region();
+        HBox.setHgrow(spintaChiudi, Priority.ALWAYS);
+        HBox rigaIntestazione = new HBox(10, prenTitolo, spintaChiudi, btnChiudi);
+        rigaIntestazione.setAlignment(Pos.TOP_LEFT);
+
+        prenDataOra.getStyleClass().add("testo-normale");
+        prenDataOra.setWrapText(true);
+        prenBiglietti.getStyleClass().add("testo-normale");
+        prenBiglietti.setWrapText(true);
+        prenTotale.getStyleClass().add("testo-normale");
+
+        Separator sep = new Separator(Orientation.HORIZONTAL);
+        sep.getStyleClass().add("divisore-menu");
+
+        // Codice ben visibile e copiabile: etichetta sopra + campo di sola lettura,
+        // selezionabile, con carattere monospaziato (classe campo-codice).
+        Label etichettaCodice = new Label("Codice prenotazione");
+        etichettaCodice.getStyleClass().add("etichetta-campo");
+        prenCodice.setEditable(false);
+        prenCodice.getStyleClass().add("campo-codice");
+        prenCodice.setStyle("-fx-font-size: 14px;");
+        VBox bloccoCodice = new VBox(4, etichettaCodice, prenCodice);
+
+        prenBtnModifica.getStyleClass().add("bottone-primario");
+        prenBtnModifica.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(prenBtnModifica, Priority.ALWAYS);
+        prenBtnModifica.setOnAction(e -> {
+            // Salvo prenotazione e callback in locali PRIMA di chiudere: chiudiDettagli-
+            // Prenotazione() azzera i campi, quindi leggerli dopo darebbe sempre null.
+            Prenotazione p = prenotazioneDettaglio;
+            java.util.function.Consumer<Prenotazione> azione = azioneModificaPrenotazione;
+            chiudiDettagliPrenotazione();
+            if (p != null && azione != null) {
+                azione.accept(p);
+            }
+        });
+
+        prenBtnAnnulla.getStyleClass().add("bottone-secondario");
+        prenBtnAnnulla.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(prenBtnAnnulla, Priority.ALWAYS);
+        prenBtnAnnulla.setOnAction(e -> {
+            Prenotazione p = prenotazioneDettaglio;
+            java.util.function.Consumer<Prenotazione> azione = azioneAnnullaPrenotazione;
+            chiudiDettagliPrenotazione();
+            if (p != null && azione != null) {
+                azione.accept(p);
+            }
+        });
+
+        VBox rigaBottoni = new VBox(8, prenBtnModifica, prenBtnAnnulla);
+        rigaBottoni.setAlignment(Pos.CENTER);
+
+        riquadroPrenotazione.getStyleClass().add("riquadro-conferma");
+        riquadroPrenotazione.setPadding(new Insets(16));
+        riquadroPrenotazione.setPrefWidth(360);
+        riquadroPrenotazione.setMaxWidth(360);
+        riquadroPrenotazione.setMaxHeight(Region.USE_PREF_SIZE);
+        // Gerarchia: intestazione, eta', divisore, poi il CODICE (in evidenza), quindi le
+        // info della proiezione e infine i bottoni impilati.
+        riquadroPrenotazione.getChildren().addAll(
+                rigaIntestazione, rigaEta, sep,
+                bloccoCodice,
+                prenDataOra, prenBiglietti, prenTotale,
+                rigaBottoni);
+
+        ScrollPane scroll = new ScrollPane(riquadroPrenotazione);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("area-scroll");
+        scroll.setMaxWidth(360);
+        scroll.setMaxHeight(Region.USE_PREF_SIZE);
+        StackPane.setAlignment(scroll, Pos.CENTER);
+
+        overlayPrenotazione.getStyleClass().add("overlay-conferma");
+        overlayPrenotazione.setAlignment(Pos.CENTER);
+        overlayPrenotazione.setOnMouseClicked(e -> chiudiDettagliPrenotazione());
+        riquadroPrenotazione.setOnMouseClicked(javafx.event.Event::consume);
+        overlayPrenotazione.getChildren().add(scroll);
+        overlayPrenotazione.setVisible(false);
+        overlayPrenotazione.setManaged(false);
+
+        radice.getChildren().add(overlayPrenotazione);
+    }
+
+    /*
+     Mostra l'overlay coi dettagli di una prenotazione attiva. Le callback per Annulla e
+     Modifica sono fornite dal controller chiamante (MiePrenotazioniController), che sa
+     come dialogare col server e come ricaricare la lista dopo l'operazione. L'overlay si
+     usa solo per prenotazioni attive: le card passate non sono cliccabili.
+    */
+    public void mostraDettagliPrenotazione(Prenotazione p,
+                                           java.util.function.Consumer<Prenotazione> onAnnulla,
+                                           java.util.function.Consumer<Prenotazione> onModifica) {
+        if (p == null) {
+            return;
+        }
+        this.prenotazioneDettaglio = p;
+        this.azioneAnnullaPrenotazione = onAnnulla;
+        this.azioneModificaPrenotazione = onModifica;
+
+        cinemax.common.model.Proiezione proiezione = p.getProiezione();
+        cinemax.common.model.Film film = proiezione.getFilm();
+        DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd/MM/yyyy - HH:mm");
+
+        prenTitolo.setText(film.getTitolo());
+
+        FasciaEta.Fascia fascia = FasciaEta.fasciaPerEta(film.getEtaMinima());
+        prenPallinoEta.getStyleClass().setAll("pallino-eta", fascia.getClasseCss());
+        prenEta.setText("Vietato ai minori di " + film.getEtaMinima() + " anni");
+
+        prenDataOra.setText("Proiezione: " + proiezione.getDataOra().format(formato));
+        int n = p.getNumeroBiglietti();
+        prenBiglietti.setText(n + (n == 1 ? " biglietto" : " biglietti"));
+        double totale = n * proiezione.getCostoBiglietto();
+        prenTotale.setText(String.format("Totale: %.2f \u20ac", totale));
+        prenCodice.setText(p.getCodice());
+
+        overlayPrenotazione.setVisible(true);
+        overlayPrenotazione.setManaged(true);
+    }
+
+    private void chiudiDettagliPrenotazione() {
+        overlayPrenotazione.setVisible(false);
+        overlayPrenotazione.setManaged(false);
+        prenotazioneDettaglio = null;
+        azioneAnnullaPrenotazione = null;
+        azioneModificaPrenotazione = null;
     }
 
     // Vero se il layout sta operando in modalità Guest (utente non autenticato).
@@ -559,6 +954,20 @@ public class BaseLayoutController {
 
     public void mostraMiePrenotazioniPubblica() {
         mostraMiePrenotazioni();
+    }
+
+    /*
+     Apre la schermata di modifica (spostamento) di una prenotazione: il cliente sceglie
+     un'altra proiezione dello stesso film su cui spostare la prenotazione. Chiamata da
+     "Le mie prenotazioni" (bottone sulla card o nell'overlay dei dettagli).
+    */
+    public void mostraModificaPrenotazione(Prenotazione prenotazione) {
+        cinemax.client.controller.cliente.ModificaPrenotazioneController modifica =
+                new cinemax.client.controller.cliente.ModificaPrenotazioneController(
+                        gestoreScene, this, prenotazione);
+        modifica.setUtente(utenteLoggato);
+        modifica.inizializza();
+        impostaContenutoCentrale(modifica.getRoot());
     }
 
     // Costruisce una voce di menu laterale con lo stile a tutta larghezza.

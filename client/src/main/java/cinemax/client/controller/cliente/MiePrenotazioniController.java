@@ -1,6 +1,3 @@
-/*
- * Autore: (compilare) - matricola: (compilare) - sede: VA/CO
- */
 package cinemax.client.controller.cliente;
 
 import cinemax.client.controller.shared.BaseLayoutController;
@@ -120,11 +117,14 @@ public class MiePrenotazioniController extends DashboardBaseController {
             }
         }
 
-        // Sezione attive: card con "Annulla prenotazione".
+        // Sezione attive: card con "Modifica" e "Annulla", e click sulla card che apre
+        // l'overlay coi dettagli (codice ben visibile) e gli stessi due bottoni.
         for (Prenotazione p : attive) {
             CardPrenotazione card = new CardPrenotazione();
             card.compilaDatiPrenotazione(p, false);
+            card.setAzioneModifica(this::gestisciModifica);
             card.setAzioneAnnulla(this::gestisciAnnullamento);
+            card.setAzioneCard(this::mostraDettagli);
             contenitoreAttive.getChildren().add(card);
         }
 
@@ -145,6 +145,18 @@ public class MiePrenotazioniController extends DashboardBaseController {
         } else {
             labelStato.setText(attive.size() + " attive, " + passate.size() + " passate.");
         }
+    }
+
+    // Apre l'overlay coi dettagli della prenotazione: codice ben visibile/copiabile e i
+    // due bottoni Annulla/Modifica, che delegano agli stessi handler usati dalle card.
+    private void mostraDettagli(Prenotazione p) {
+        layout.mostraDettagliPrenotazione(p, this::gestisciAnnullamento, this::gestisciModifica);
+    }
+
+    // Avvia la modifica/spostamento della prenotazione su un'altra proiezione dello
+    // stesso film (schermata dedicata gestita dal layout).
+    private void gestisciModifica(Prenotazione p) {
+        layout.mostraModificaPrenotazione(p);
     }
 
     // Chiede conferma in-app e, se confermato, annulla la prenotazione. Il servizio

@@ -594,3 +594,66 @@
     -fx-padding: 4px 6px;
     -fx-font-size: 12px;
 }
+
+/* ============================================================
+   Stato vuoto dell'area risultati (nessuna proiezione trovata
+   oppure server non raggiungibile). Riquadro centrato, discreto,
+   con icona grande attenuata, titolo e sottotitolo esplicativo.
+   ============================================================ */
+.stato-vuoto {
+    -fx-background-color: transparent;
+}
+
+.stato-vuoto-icona {
+    -fx-font-size: 48px;
+    -fx-opacity: 0.45;
+}
+
+.stato-vuoto-titolo {
+    -fx-font-family: "DM Serif Display", serif;
+    -fx-text-fill: -fx-text-main;
+    -fx-font-size: 20px;
+}
+
+.stato-vuoto-sottotitolo {
+    -fx-text-fill: -fx-text-muted;
+    -fx-font-size: 13px;
+    -fx-text-alignment: center;
+}
+
+/* ============================================================
+   Stato hover/focus: feedback visivo coerente al passaggio del
+   mouse e alla navigazione da tastiera (accessibilita').
+   ============================================================ */
+
+/* Card proiezione: oltre al bordo giallo (gia' definito sopra in
+   .card-proiezione:hover) aggiungiamo un leggero sollevamento e
+   lo stesso trattamento quando la card riceve il focus da tastiera. */
+.card-proiezione:hover {
+    -fx-effect: dropshadow(gaussian, rgba(255, 232, 79, 0.18), 12, 0, 0, 2);
+}
+
+.card-proiezione:focused {
+    -fx-border-color: -fx-primary-color;
+    -fx-effect: dropshadow(gaussian, rgba(255, 232, 79, 0.18), 12, 0, 0, 2);
+}
+
+/* Anello di focus da tastiera sui bottoni principali/secondari, per
+   rendere visibile dove ci si trova navigando con TAB. L'hover dei
+   colori e' gia' gestito dalle rispettive classi. */
+.bottone-primario:focused,
+.bottone-bianco:focused {
+    -fx-border-color: -fx-text-main;
+    -fx-border-width: 2px;
+    -fx-border-radius: 5px;
+}
+
+.bottone-secondario:focused {
+    -fx-border-color: -fx-primary-color;
+    -fx-border-width: 2px;
+}
+
+.bottone-ordinamento:focused {
+    -fx-border-color: -fx-primary-color;
+    -fx-text-fill: -fx-text-main;
+}
