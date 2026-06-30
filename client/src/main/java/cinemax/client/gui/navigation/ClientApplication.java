@@ -51,7 +51,7 @@ public class ClientApplication extends Application {
             }
 
             primaryStage.setTitle("CineMax - Prenotazione Cinema");
-            primaryStage.setMinWidth(980);
+            primaryStage.setMinWidth(550);
             primaryStage.setMinHeight(630);
 
             // Il fornitore dei servizi NON viene più creato qui: all'avvio non

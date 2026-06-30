@@ -32,7 +32,7 @@ public class StartController {
         contenitore.getStyleClass().add("sfondo-principale");
         contenitore.setPadding(new Insets(40));
 
-        Label titolo = new Label("CineMax");
+        Label titolo = new Label("🎬 CineMax");
         titolo.getStyleClass().add("titolo-principale");
 
         Label sottotitolo = new Label("Prenota il tuo posto in prima fila.");

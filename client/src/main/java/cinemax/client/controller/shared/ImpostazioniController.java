@@ -1,6 +1,3 @@
-/*
- * Autore: (compilare) - matricola: (compilare) - sede: VA/CO
- */
 package cinemax.client.controller.shared;
 
 import cinemax.client.gui.model.Impostazioni;

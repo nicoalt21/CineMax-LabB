@@ -657,3 +657,26 @@
     -fx-border-color: -fx-primary-color;
     -fx-text-fill: -fx-text-main;
 }
+
+/* Variante del bottone collassa usata SOLO per il "<"/">" del menu laterale: nessun
+   riquadro (ne' bordo ne' sfondo), per un aspetto pulito da semplice freccia. Le "X" di
+   chiusura degli overlay continuano a usare .bottone-collassa col bordo. */
+.bottone-collassa-menu {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-main;
+    -fx-border-color: transparent;
+    -fx-padding: 4px 10px;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-min-width: 32px;
+}
+
+.bottone-collassa-menu:hover {
+    -fx-text-fill: -fx-primary-color;
+}
+
+.bottone-collassa-menu:focused {
+    -fx-border-color: transparent;
+    -fx-background-color: transparent;
+}

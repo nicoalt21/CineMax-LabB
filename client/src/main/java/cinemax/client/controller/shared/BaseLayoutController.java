@@ -145,7 +145,7 @@ public class BaseLayoutController {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15, 20, 15, 20));
 
-        Label logo = new Label("CineMax");
+        Label logo = new Label("🎬 CineMax");
         logo.getStyleClass().add("titolo-principale");
         logo.setStyle("-fx-font-size: 22px;");
 
@@ -161,7 +161,7 @@ public class BaseLayoutController {
         header.getChildren().addAll(logo, labelBenvenuto, spazio, labelStatoConnessione, btnAuth);
 
         // Bottone collassa/espandi: sta in alto a destra DENTRO il pannello laterale.
-        btnCollassaMenu.getStyleClass().add("bottone-collassa");
+        btnCollassaMenu.getStyleClass().add("bottone-collassa-menu");
         btnCollassaMenu.setOnAction(e -> toggleMenuLaterale());
         Region spintaToggle = new Region();
         HBox.setHgrow(spintaToggle, Priority.ALWAYS);
@@ -400,7 +400,9 @@ public class BaseLayoutController {
 
         FasciaEta.Fascia fascia = FasciaEta.fasciaPerEta(film.getEtaMinima());
         dettagliPallinoEta.getStyleClass().setAll("pallino-eta", fascia.getClasseCss());
-        dettagliEta.setText("Vietato ai minori di " + film.getEtaMinima() + " anni");
+        dettagliEta.setText(film.getEtaMinima() <= 0
+                ? "Adatto a tutte le età!"
+                : "Vietato ai minori di " + film.getEtaMinima() + " anni");
 
         dettagliGenere.setText("Genere: " + film.getGenere());
         dettagliRegista.setText("Regista: " + film.getRegista());
@@ -615,7 +617,9 @@ public class BaseLayoutController {
 
         FasciaEta.Fascia fascia = FasciaEta.fasciaPerEta(film.getEtaMinima());
         prenPallinoEta.getStyleClass().setAll("pallino-eta", fascia.getClasseCss());
-        prenEta.setText("Vietato ai minori di " + film.getEtaMinima() + " anni");
+        prenEta.setText(film.getEtaMinima() <= 0
+                ? "Adatto a tutte le età!"
+                : "Vietato ai minori di " + film.getEtaMinima() + " anni");
 
         prenDataOra.setText("Proiezione: " + proiezione.getDataOra().format(formato));
         int n = p.getNumeroBiglietti();
@@ -776,13 +780,27 @@ public class BaseLayoutController {
         contenutoVoci.getChildren().addAll(vociAlto, spinta, divisoreRuolo, etichettaRuolo);
     }
 
-    // Collassa o espande il menu laterale. Si nasconde solo il contenitore delle voci,
-    // mentre il bottone in alto a destra resta visibile e passa da "<" a ">".
+    // Collassa o espande il menu laterale. Da collassato il pannello si stringe alla sola
+    // larghezza del bottone freccia, cosi' il BorderPane non gli riserva piu' spazio e il
+    // contenuto centrale si estende fin verso sinistra; il bottone resta visibile e passa
+    // da "<" a ">".
     private void toggleMenuLaterale() {
         menuCollassato = !menuCollassato;
         contenutoVoci.setVisible(!menuCollassato);
         contenutoVoci.setManaged(!menuCollassato);
         btnCollassaMenu.setText(menuCollassato ? ">" : "<");
+
+        if (menuCollassato) {
+            // Pannello ridotto alla larghezza minima (solo il bottone): rilascia lo spazio.
+            menuLaterale.setPrefWidth(Region.USE_COMPUTED_SIZE);
+            menuLaterale.setMinWidth(Region.USE_COMPUTED_SIZE);
+            menuLaterale.setMaxWidth(Region.USE_COMPUTED_SIZE);
+        } else {
+            // Pannello espanso alla larghezza piena.
+            menuLaterale.setPrefWidth(200);
+            menuLaterale.setMinWidth(Region.USE_COMPUTED_SIZE);
+            menuLaterale.setMaxWidth(Region.USE_COMPUTED_SIZE);
+        }
     }
 
     // Testo del ruolo mostrato in basso (Guest incluso).

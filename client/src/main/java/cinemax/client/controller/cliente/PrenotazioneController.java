@@ -1,6 +1,3 @@
-/*
- * Autore: (compilare) - matricola: (compilare) - sede: VA/CO
- */
 package cinemax.client.controller.cliente;
 
 import cinemax.client.controller.shared.BaseLayoutController;

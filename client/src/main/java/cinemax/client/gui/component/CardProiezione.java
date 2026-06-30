@@ -1,6 +1,3 @@
-/*
- * Autore: (compilare) - matricola: (compilare) - sede: VA/CO
- */
 package cinemax.client.gui.component;
 
 import cinemax.client.gui.util.FasciaEta;
@@ -61,7 +58,7 @@ public class CardProiezione extends VBox {
         setPadding(new Insets(8, 16, 8, 16));
         setMaxWidth(Double.MAX_VALUE);
         getStyleClass().add("card-proiezione");
-        // La card e' raggiungibile con TAB e attivabile da tastiera (vedi setAzioneCard):
+        // La card è raggiungibile con TAB e attivabile da tastiera (vedi setAzioneCard):
         // serve sia per l'accessibilita' sia per far scattare lo stile :focused del tema.
         setFocusTraversable(true);
 
@@ -97,10 +94,13 @@ public class CardProiezione extends VBox {
 
         Region spazio = new Region();
         HBox.setHgrow(spazio, Priority.ALWAYS);
-        HBox rigaAzioni = new HBox(8, spazio, bottoneSecondario, bottonePrincipale);
+        HBox rigaAzioni = new HBox(8, spazio, bottonePrincipale, bottoneSecondario);
         rigaAzioni.setAlignment(Pos.CENTER_RIGHT);
 
-        getChildren().addAll(rigaTitolo, dettagliFilmLabel, rigaInfo, rigaAzioni);
+        Region staccoAzioni = new Region();
+        staccoAzioni.setMinHeight(16);
+
+        getChildren().addAll(rigaTitolo, dettagliFilmLabel, rigaInfo, staccoAzioni, rigaAzioni);
     }
 
     /*
@@ -152,7 +152,10 @@ public class CardProiezione extends VBox {
         FasciaEta.Fascia fascia = FasciaEta.fasciaPerEta(etaMinima);
         pallinoEta.getStyleClass().setAll("pallino-eta", fascia.getClasseCss());
         etaLabel.setText("VM" + etaMinima);
-        Tooltip.install(pallinoEta, new Tooltip("Vietato ai minori di " + etaMinima + " anni"));
+        String testoTooltip = etaMinima <= 0
+                ? "Adatto a tutte le età!"
+                : "Vietato ai minori di " + etaMinima + " anni";
+        Tooltip.install(pallinoEta, new Tooltip(testoTooltip));
     }
 
     /*

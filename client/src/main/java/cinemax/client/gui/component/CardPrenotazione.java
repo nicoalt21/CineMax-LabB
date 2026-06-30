@@ -87,7 +87,12 @@ public class CardPrenotazione extends VBox {
 
         rigaAzioni.setAlignment(Pos.CENTER_RIGHT);
 
-        getChildren().addAll(rigaTitolo, rigaCodice, rigaInfo, rigaAzioni);
+        // Interlinea fra la riga delle informazioni e la riga dei bottoni, coerente con
+        // la card proiezione: le azioni non risultano appiccicate ai dati.
+        Region staccoAzioni = new Region();
+        staccoAzioni.setMinHeight(8);
+
+        getChildren().addAll(rigaTitolo, rigaCodice, rigaInfo, staccoAzioni, rigaAzioni);
     }
 
     /*
@@ -151,7 +156,7 @@ public class CardPrenotazione extends VBox {
                 azione.accept(prenotazioneCorrente);
             }
         });
-        // Inserisco in testa, cosi' l'ordine e' "Modifica" poi "Annulla".
+        // Inserisco in testa, cosi' l'ordine è "Modifica" poi "Annulla".
         rigaAzioni.getChildren().add(0, btnModifica);
     }
 
@@ -185,7 +190,10 @@ public class CardPrenotazione extends VBox {
         FasciaEta.Fascia fascia = FasciaEta.fasciaPerEta(etaMinima);
         pallinoEta.getStyleClass().setAll("pallino-eta", fascia.getClasseCss());
         etaLabel.setText("VM" + etaMinima);
-        Tooltip.install(pallinoEta, new Tooltip("Vietato ai minori di " + etaMinima + " anni"));
+        String testoTooltip = etaMinima <= 0
+                ? "Adatto a tutte le età!"
+                : "Vietato ai minori di " + etaMinima + " anni";
+        Tooltip.install(pallinoEta, new Tooltip(testoTooltip));
     }
 
     public Prenotazione getPrenotazione() {
