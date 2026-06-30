@@ -14,8 +14,8 @@ import java.util.Scanner;
 
 /**
  * Entry point del server CineMax.
- * Chiede le credenziali del DB, inizializza la connessione,
- * registra i 3 servizi RMI e resta in ascolto.
+ * Chiede le credenziali del DB e la porta RMI, inizializza la connessione,
+ * registra i 4 servizi RMI e resta in ascolto.
  */
 public class ServerCM {
 
@@ -48,6 +48,15 @@ public class ServerCM {
         System.out.print("Password DB: ");
         String password = scanner.nextLine().trim();
 
+        System.out.print("Porta RMI   [1099]: ");
+        String portaRmiStr = scanner.nextLine().trim();
+        int portaRmi = 1099;
+        try {
+            if (!portaRmiStr.isEmpty()) portaRmi = Integer.parseInt(portaRmiStr);
+        } catch (NumberFormatException e) {
+            System.out.println("Porta RMI non valida, uso 1099.");
+        }
+
         DBconnection.inizializzaConnessione(host, porta, database, username, password);
 
         // Test reale della connessione: senza questo, un DB irraggiungibile o
@@ -69,13 +78,13 @@ public class ServerCM {
             ServizioPrenotazioniImpl   prenotImpl = new ServizioPrenotazioniImpl();
             ServizioConnessioneImpl    connImpl   = new ServizioConnessioneImpl();
 
-            Registry registry = LocateRegistry.createRegistry(1099);
+            Registry registry = LocateRegistry.createRegistry(portaRmi);
             registry.rebind("ServizioAutenticazione", authImpl);
             registry.rebind("ServizioProiezioni",     projImpl);
             registry.rebind("ServizioPrenotazioni",   prenotImpl);
             registry.rebind("ServizioConnessione",    connImpl);
 
-            System.out.println("Server RMI attivo sulla porta 1099.");
+            System.out.println("Server RMI attivo sulla porta " + portaRmi + ".");
             System.out.println("In attesa di connessioni... (Ctrl+C per terminare)");
 
             // Tiene vivo il processo in modo esplicito, senza affidarsi al fatto
