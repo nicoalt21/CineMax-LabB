@@ -97,4 +97,25 @@ public class UtenteDAO {
                 Ruolo.valueOf(rs.getString("ruolo"))
         );
     }
+
+    public boolean aggiorna(Utente utente) throws SQLException {
+        String sql = "UPDATE utenti SET nome = ?, cognome = ?, password_hash = ?, " +
+                "data_nascita = ?, domicilio = ? WHERE username = ?";
+
+        try (Connection conn = DBconnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, utente.getNome());
+            ps.setString(2, utente.getCognome());
+            ps.setString(3, utente.getPasswordCifrata());
+            if (utente.getDataNascita() != null) {
+                ps.setDate(4, Date.valueOf(utente.getDataNascita()));
+            } else {
+                ps.setNull(4, Types.DATE);
+            }
+            ps.setString(5, utente.getLuogoDomicilio());
+            ps.setString(6, utente.getUsername());
+            int righe = ps.executeUpdate();
+            return righe > 0;
+        }
+    }
 }

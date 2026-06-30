@@ -11,5 +11,7 @@ public interface ServizioAutenticazione extends Remote {
 
     boolean registraCliente(Utente utente) throws RemoteException;
 
+    boolean modificaUtente(Utente utente) throws RemoteException;
+
     void logout(String username) throws RemoteException;
 }

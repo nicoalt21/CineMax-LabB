@@ -47,6 +47,20 @@ public class ServizioAutenticazioneImpl extends UnicastRemoteObject implements S
     }
 
     @Override
+    public boolean modificaUtente(Utente utente) throws RemoteException {
+        LogServer.richiesta("Autenticazione", "modificaUtente username="
+                + (utente != null ? utente.getUsername() : "null"));
+        try {
+            boolean ok = utenteDAO.aggiorna(utente);
+            LogServer.esito("Autenticazione", "modificaUtente " + (ok ? "OK" : "RIFIUTATA (utente non trovato)"));
+            return ok;
+        } catch (SQLException e) {
+            LogServer.esito("Autenticazione", "modificaUtente ERRORE DB: " + e.getMessage());
+            throw LogServer.erroreRemoto("Errore durante la modifica utente", e);
+        }
+    }
+
+    @Override
     public void logout(String username) throws RemoteException {
         LogServer.richiesta("Autenticazione", "logout username=" + username);
         // RMI è stateless — il logout è gestito lato client
