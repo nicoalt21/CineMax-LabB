@@ -12,14 +12,9 @@ import java.sql.Statement;
 import java.util.Scanner;
 
 /**
- * Classe per la creazione e il popolamento del database CineMax.
- * Chiede le credenziali PostgreSQL all'utente, crea il database cinemaxdb
- * ed esegue in ordine i file SQL per creare le tabelle e popolarle con i dati iniziali.
- *
- * @author Alt Niccolò Jacopo, 762605, VA
- * @author Gerti, Alessia, 762405, VA
- * @author Soldo Mateo, 760762, VA
- * @author Vignati Davide, 761134, VA
+ * Tool da riga di comando per creare e popolare il database CineMax.
+ * Va eseguito una sola volta, prima di avviare il server, per inizializzare
+ * lo schema e i dati di base (utenti predefiniti, film, proiezioni di esempio).
  */
 public class DBcreator {
 
@@ -33,15 +28,42 @@ public class DBcreator {
             "prenotazioni.sql"
     };
 
-    /**
-     * Metodo principale. Chiede le credenziali all'utente, si connette a PostgreSQL,
-     * crea il database cinemaxdb se non esiste (o lo ricrea se richiesto),
-     * poi esegue i file SQL in ordine per creare  e popolare le tabelle.
-     *
-     * @param args argomenti della riga di comando (non utilizzati)
-     */
-    public static void main(String[] args) {
+    private static final String VERDE  = "\u001B[32m";
+    private static final String ROSSO  = "\u001B[31m";
+    private static final String GIALLO = "\u001B[33m";
+    private static final String RESET  = "\u001B[0m";
 
+    private static final boolean COLORI_ATTIVI = rilevaSupportoColori();
+
+    /**
+     * Decide se attivare i colori ANSI. Disattivabile esplicitamente con la
+     * variabile d'ambiente NO_COLOR (convenzione standard). Attivo di default
+     * su Linux/Mac e su Windows (inclusi i terminali moderni e quello di IntelliJ).
+     */
+    private static boolean rilevaSupportoColori() {
+        if (System.getenv("NO_COLOR") != null) {
+            return false;
+        }
+        return true;
+    }
+
+    private static String colora(String codice, String testo) {
+        return COLORI_ATTIVI ? codice + testo + RESET : testo;
+    }
+
+    private static void stampaOk(String testo) {
+        System.out.println(colora(VERDE, testo));
+    }
+
+    private static void stampaErrore(String testo) {
+        System.out.println(colora(ROSSO, testo));
+    }
+
+    private static void stampaInfo(String testo) {
+        System.out.println(colora(GIALLO, testo));
+    }
+
+    public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
         System.out.println("=== CineMax - Creazione Database ===\n");
@@ -67,16 +89,14 @@ public class DBcreator {
         System.out.print("Password (premi invio se vuota): ");
         String password = scanner.nextLine().trim();
 
-        //connessione al database "postgres" per creare cinemaxdb
         String urlPostgres = "jdbc:postgresql://" + host + ":" + porta + "/postgres";
 
-        System.out.println("\nConnessione a: " + urlPostgres + " in corso...");
+        stampaInfo("\nConnessione a: " + urlPostgres + " in corso...");
 
         try (Connection conn = DriverManager.getConnection(urlPostgres, username, password)) {
 
-            System.out.println("Connessione riuscita!\n");
+            stampaOk("Connessione riuscita!\n");
 
-            // Controlla se il database esiste già
             boolean esiste = false;
             try (var rs = conn.getMetaData().getCatalogs()) {
                 while (rs.next()) {
@@ -88,7 +108,7 @@ public class DBcreator {
             }
 
             if (esiste) {
-                System.out.println("Il database '" + NOME_DATABASE + "' esiste gia'.");
+                stampaInfo("Il database '" + NOME_DATABASE + "' esiste gia'.");
                 String risposta;
                 while (true) {
                     System.out.print("Vuoi eliminarlo e ricrearlo? (s/n): ");
@@ -104,58 +124,66 @@ public class DBcreator {
                     scanner.close();
                     return;
                 }
-                // Elimina il database esistente
                 try (Statement stmt = conn.createStatement()) {
                     stmt.execute("DROP DATABASE " + NOME_DATABASE);
-                    System.out.println("Database '" + NOME_DATABASE + "' eliminato.");
+                    stampaInfo("Database '" + NOME_DATABASE + "' eliminato.");
                 }
             }
 
-            // Crea il database
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute("CREATE DATABASE " + NOME_DATABASE);
-                System.out.println("Database '" + NOME_DATABASE + "' creato correttamente.\n");
+                stampaOk("Database '" + NOME_DATABASE + "' creato correttamente.\n");
             }
 
         } catch (SQLException e) {
-            System.err.println("Errore di connessione");
-            System.err.println("Verificare che PostgreSQL sia avviato e le credenziali siano corrette.");
+            stampaErrore("Errore di connessione: " + e.getMessage());
+            stampaErrore("Verificare che PostgreSQL sia avviato e le credenziali siano corrette.");
             scanner.close();
             return;
         }
 
-        //Connessione a cinemaxdb ed esecuzione file SQL
         String urlCinemax = "jdbc:postgresql://" + host + ":" + porta + "/" + NOME_DATABASE;
 
-        System.out.println("Connessione a: " + urlCinemax + " in corso...");
+        stampaInfo("Connessione a: " + urlCinemax + " in corso...");
+
+        boolean tuttoOk = true;
 
         try (Connection conn = DriverManager.getConnection(urlCinemax, username, password)) {
 
-            System.out.println("Connessione riuscita!");
-            System.out.println();
+            stampaOk("Connessione riuscita!\n");
 
             for (String nomeFile : FILE_SQL) {
-                eseguiFileSql(conn, nomeFile);
+                boolean ok = eseguiFileSql(conn, nomeFile);
+                if (!ok) tuttoOk = false;
             }
 
-            System.out.println("\n=== Database creato e popolato correttamente! ===");
-
         } catch (SQLException e) {
-            System.err.println("Errore durante l'esecuzione dei file SQL");
+            stampaErrore("Errore durante la connessione per l'esecuzione dei file SQL: " + e.getMessage());
+            tuttoOk = false;
+        }
+
+        System.out.println();
+        if (tuttoOk) {
+            stampaOk("=== Database creato e popolato correttamente! ===");
+        } else {
+            stampaErrore("=== Database creato, ma con uno o piu' errori durante il popolamento. ===");
+            stampaErrore("Controllare i messaggi sopra per individuare il file SQL che ha fallito.");
         }
 
         scanner.close();
     }
 
     /**
-     * Legge un file SQL dalle resources e lo esegue istruzione per istruzione.
-     * Le istruzioni sono separate dal carattere ";".
-     * Le righe vuote e i commenti (--) vengono ignorati.
+     * Esegue tutte le istruzioni SQL contenute in un file delle risorse.
+     * In caso di errore su una singola istruzione, lo segnala con il numero
+     * dell'istruzione e continua con le successive, così un solo errore
+     * non blocca l'intero file.
      *
      * @param conn     connessione al database
-     * @param nomeFile nome del file SQL in resources/data/sql/
+     * @param nomeFile nome del file SQL nelle risorse (es. "schema.sql")
+     * @return true se tutte le istruzioni sono andate a buon fine, false altrimenti
      */
-    private static void eseguiFileSql(Connection conn, String nomeFile) {
+    private static boolean eseguiFileSql(Connection conn, String nomeFile) {
 
         String percorso = "/data/sql/" + nomeFile;
 
@@ -164,29 +192,46 @@ public class DBcreator {
         try (InputStream is = DBcreator.class.getResourceAsStream(percorso)) {
 
             if (is == null) {
-                System.out.println("ERRORE: file non trovato: " + percorso);
-                return;
+                stampaErrore("ERRORE: file non trovato: " + percorso);
+                return false;
             }
 
             String contenuto = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
                     .lines().reduce("", (a, b) -> a + "\n" + b);
 
             String[] istruzioni = contenuto.split(";");
+            boolean ok = true;
+            int numeroIstruzione = 0;
 
             try (Statement stmt = conn.createStatement()) {
                 for (String istruzione : istruzioni) {
                     String pulita = istruzione.trim();
-                    if (!pulita.isEmpty() && !pulita.startsWith("--")) {
+                    if (pulita.isEmpty() || pulita.startsWith("--")) {
+                        continue;
+                    }
+                    numeroIstruzione++;
+                    try {
                         stmt.execute(pulita);
+                    } catch (SQLException e) {
+                        System.out.println();
+                        stampaErrore("  ERRORE nell'istruzione #" + numeroIstruzione
+                                + " di " + nomeFile + ": " + e.getMessage());
+                        ok = false;
                     }
                 }
-                System.out.println("OK");
             }
 
+            if (ok) {
+                stampaOk("OK (" + numeroIstruzione + " istruzioni)");
+            }
+            return ok;
+
         } catch (IOException e) {
-            System.out.println("ERRORE lettura file");
+            stampaErrore("ERRORE lettura file: " + e.getMessage());
+            return false;
         } catch (SQLException e) {
-            System.out.println("ERRORE SQL");
+            stampaErrore("ERRORE SQL: " + e.getMessage());
+            return false;
         }
     }
 }

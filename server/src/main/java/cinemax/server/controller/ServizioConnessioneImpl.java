@@ -18,16 +18,13 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ServizioConnessioneImpl extends UnicastRemoteObject implements ServizioConnessione {
 
-    // Oltre questa soglia senza heartbeat il client è considerato caduto.
     private static final long TIMEOUT_MS = 15_000;
-
-    // Ogni quanto il reaper controlla i client scaduti.
     private static final long INTERVALLO_CONTROLLO_MS = 5_000;
-
     private static final DateTimeFormatter ORA = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-    // idClient → ultimo istante (epoch ms) in cui si è avuto sue notizie.
     private final Map<String, Long> ultimoContatto = new ConcurrentHashMap<>();
+    private volatile boolean reaperAttivo = true;
+    private Thread reaper;
 
     public ServizioConnessioneImpl() throws RemoteException {
         super();
@@ -44,8 +41,6 @@ public class ServizioConnessioneImpl extends UnicastRemoteObject implements Serv
     @Override
     public boolean ping(String idClient) throws RemoteException {
         Long precedente = ultimoContatto.put(idClient, System.currentTimeMillis());
-        // Se il client ricompare dopo essere stato rimosso per timeout, lo notifichiamo
-        // come riconnessione invece di restare silenziosi.
         if (precedente == null) {
             log("Client riconnesso (ping): " + idClient + provenienza()
                     + "  (client attivi: " + ultimoContatto.size() + ")");
@@ -61,7 +56,26 @@ public class ServizioConnessioneImpl extends UnicastRemoteObject implements Serv
         }
     }
 
-    // Host del chiamante RMI tra parentesi, quando disponibile; vuoto altrimenti.
+    /**
+     * Restituisce il numero di client attualmente tracciati (heartbeat ricevuto entro
+     * il timeout). Uso interno del server, non esposto via RMI.
+     *
+     * @return numero di client connessi
+     */
+    public int numeroClientConnessi() {
+        return ultimoContatto.size();
+    }
+
+    /**
+     * Ferma il thread reaper. Da chiamare durante lo spegnimento pulito del server.
+     */
+    public void fermaReaper() {
+        reaperAttivo = false;
+        if (reaper != null) {
+            reaper.interrupt();
+        }
+    }
+
     private String provenienza() {
         try {
             return " (host: " + RemoteServer.getClientHost() + ")";
@@ -70,10 +84,9 @@ public class ServizioConnessioneImpl extends UnicastRemoteObject implements Serv
         }
     }
 
-    // Thread demone che rimuove e segnala i client scaduti per assenza di heartbeat.
     private void avviaReaper() {
-        Thread reaper = new Thread(() -> {
-            while (true) {
+        reaper = new Thread(() -> {
+            while (reaperAttivo) {
                 try {
                     Thread.sleep(INTERVALLO_CONTROLLO_MS);
                 } catch (InterruptedException e) {
