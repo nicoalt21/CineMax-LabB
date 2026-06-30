@@ -169,6 +169,10 @@ public class ServerCM {
             System.out.println("Server arrestato correttamente.");
         } catch (NotBoundException | RemoteException e) {
             System.err.println("Errore durante l'arresto del server: " + e.getMessage());
+        } finally {
+            // Forza la chiusura della JVM: i thread RMI non-daemon altrimenti
+            // terrebbero il processo vivo nonostante unbind() dei servizi.
+            System.exit(0);
         }
     }
 }
