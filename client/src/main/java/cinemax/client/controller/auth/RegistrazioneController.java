@@ -20,16 +20,21 @@ import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
 
-/*
- Schermata di registrazione, costruita interamente in codice Java (come StartController).
- Riceve il GestoreScene nel costruttore per poter navigare.
-
- La UI è composta solo da componenti riutilizzabili (CampoConEtichetta) e da classi CSS
- condivise: nessun testo, larghezza o stile è hardcodato nei singoli campi.
-
- Campi obbligatori (asterisco rosso): nome, cognome, username, password, conferma password.
- Campi facoltativi: data di nascita, domicilio.
- Il ruolo del nuovo utente è sempre CLIENTE.
+/**
+ * Schermata di registrazione, costruita interamente in codice Java (come StartController).
+ * Riceve il GestoreScene nel costruttore per poter navigare.
+ * <p>
+ * La UI è composta solo da componenti riutilizzabili (CampoConEtichetta) e da classi CSS
+ * condivise: nessun testo, larghezza o stile è hardcodato nei singoli campi.
+ * <p>
+ * Campi obbligatori (asterisco rosso): nome, cognome, username, password, conferma
+ * password. Campi facoltativi: data di nascita, domicilio. Il ruolo del nuovo utente è
+ * sempre CLIENTE.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class RegistrazioneController {
 
@@ -63,22 +68,38 @@ public class RegistrazioneController {
     // Messaggio di errore generale, mostrato in basso sopra il bottone Conferma
     private final Label labelErroreGenerale = new Label();
 
+    /**
+     * Costruisce la schermata di registrazione.
+     *
+     * @param gestoreScene gestore di navigazione per passare alle altre schermate
+     */
     public RegistrazioneController(GestoreScene gestoreScene) {
         this.gestoreScene = gestoreScene;
         this.radice = costruisciVista();
     }
 
-    // Restituisce il nodo radice della schermata, da inserire nella Scene
+    /** @return il nodo radice della schermata, da inserire nella Scene. */
     public VBox getRoot() {
         return radice;
     }
 
+    /**
+     * Crea un TextField con il prompt indicato.
+     *
+     * @param prompt testo segnaposto del campo
+     * @return il TextField configurato
+     */
     private static TextField nuovoTextField(String prompt) {
         TextField tf = new TextField();
         tf.setPromptText(prompt);
         return tf;
     }
 
+    /**
+     * Costruisce la vista completa della registrazione (griglia campi, bottoni, link).
+     *
+     * @return il contenitore radice della schermata
+     */
     private VBox costruisciVista() {
         VBox contenitore = new VBox(12);
         contenitore.setAlignment(Pos.CENTER);
@@ -129,6 +150,11 @@ public class RegistrazioneController {
         return contenitore;
     }
 
+    /**
+     * Costruisce la griglia a due colonne con i campi del form.
+     *
+     * @return la griglia dei campi
+     */
     private GridPane costruisciGriglia() {
         GridPane griglia = new GridPane();
         griglia.setAlignment(Pos.CENTER);
@@ -153,6 +179,10 @@ public class RegistrazioneController {
         return griglia;
     }
 
+    /**
+     * Valida i campi (obbligatori, lunghezza e coincidenza password) e, se tutto è
+     * corretto, costruisce l'Utente e lo invia al server con registraCliente.
+     */
     public void onConfermaRegistrazioneCliccato() {
         pulisciErrori();
 
@@ -200,25 +230,46 @@ public class RegistrazioneController {
             return;
         }
 
+        // Validazione della data di nascita
+        LocalDate dataNascita = leggiDataNascita();
+        if (dataNascita != null && dataNascita.isAfter(LocalDate.now())) {
+            campoDataNascita.evidenziaErrore();
+            mostraErroreGenerale("La data di nascita non può essere nel futuro.");
+            return;
+        }
+
+        // Controllo che nome e cognome contengano solo lettere, spazi, apostrofi o trattini
+        String regexNomi = "^[A-Za-zÀ-ÿ\\s\\-']+$";
+
+        if (!campoNome.getTesto().matches(regexNomi)) {
+            campoNome.evidenziaErrore();
+            valido = false;
+        }
+        if (!campoCognome.getTesto().matches(regexNomi)) {
+            campoCognome.evidenziaErrore();
+            valido = false;
+        }
+
+        if (!valido) {
+            mostraErroreGenerale("Nome e cognome possono contenere solo lettere, spazi, apostrofi o trattini.");
+            return;
+        }
+
         // Tutti i controlli locali superati: costruisco l'oggetto Utente
         String nome = campoNome.getTesto().trim();
         String cognome = campoCognome.getTesto().trim();
         String username = campoUsername.getTesto().trim();
         String password = Cifrario.cifraPassword(campoPassword.getTesto());
-        LocalDate dataNascita = leggiDataNascita();
         String domicilio = vuotoComeNull(campoDomicilio.getTesto());
 
         Utente nuovoUtente = new Utente(
                 nome, cognome, username,
                 password,
-                dataNascita,       // può essere null
-                domicilio,         // può essere null
+                dataNascita,
+                domicilio,
                 RUOLO_PREDEFINITO
         );
 
-        // Invio al server: registrazione del nuovo cliente. Il servizio restituisce
-        // false se lo username e' gia' in uso. Una RemoteException indica server non
-        // raggiungibile. In caso di successo si torna al login per accedere.
         try {
             boolean registrato = gestoreScene.getFornitoreServizi()
                     .getServizioAutenticazione()
@@ -233,33 +284,46 @@ public class RegistrazioneController {
         }
     }
 
-    // Da invocare quando il server segnala che lo username è già registrato.
+    /** Segnala che lo username scelto è già registrato, evidenziando il campo. */
     public void mostraErroreUsernameInUso() {
         campoUsername.evidenziaErrore();
         mostraErroreGenerale("Username già in uso.");
     }
 
+    /** Annulla la registrazione e torna alla schermata iniziale (Start). */
     public void onAnnullaCliccato() {
         gestoreScene.vaiAStart();
     }
 
-    // Naviga alla schermata di login (link "Hai già un account? Accedi").
+    /** Naviga alla schermata di login (link "Hai già un account? Accedi"). */
     public void onAccediCliccato() {
         gestoreScene.vaiALogin();
     }
 
     // Helper privati
+
+    /**
+     * Legge la data di nascita dal DatePicker.
+     *
+     * @return la data selezionata, oppure null se non indicata (campo facoltativo)
+     */
     private LocalDate leggiDataNascita() {
         DatePicker dp = (DatePicker) campoDataNascita.getControllo();
         return dp.getValue(); // null se non selezionata (campo facoltativo)
     }
 
+    /**
+     * Mostra il messaggio di errore generale sopra il bottone Conferma.
+     *
+     * @param messaggio testo dell'errore da mostrare
+     */
     private void mostraErroreGenerale(String messaggio) {
         labelErroreGenerale.setText(messaggio);
         labelErroreGenerale.setManaged(true);
         labelErroreGenerale.setVisible(true);
     }
 
+    /** Ripulisce l'evidenziazione di tutti i campi e nasconde l'errore generale. */
     private void pulisciErrori() {
         campoNome.pulisciErrore();
         campoCognome.pulisciErrore();
@@ -273,10 +337,18 @@ public class RegistrazioneController {
         labelErroreGenerale.setVisible(false);
     }
 
+    /**
+     * @param s stringa da controllare
+     * @return true se la stringa è null o composta di soli spazi
+     */
     private static boolean isVuoto(String s) {
         return s == null || s.trim().isEmpty();
     }
 
+    /**
+     * @param s stringa da normalizzare
+     * @return la stringa senza spazi ai lati, oppure null se vuota
+     */
     private static String vuotoComeNull(String s) {
         return isVuoto(s) ? null : s.trim();
     }

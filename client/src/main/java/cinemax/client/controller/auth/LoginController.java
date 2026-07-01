@@ -15,7 +15,15 @@ import javafx.scene.layout.VBox;
 
 import java.rmi.RemoteException;
 
-// Schermata di login, costruita interamente in codice Java (come StartController). Riceve il GestoreScene nel costruttore per poter navigare.
+/**
+ * Schermata di login, costruita interamente in codice Java (come StartController).
+ * Riceve il GestoreScene nel costruttore per poter navigare.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
+ */
 public class LoginController {
 
     private final GestoreScene gestoreScene;
@@ -25,16 +33,26 @@ public class LoginController {
     private final PasswordField campoPassword = new PasswordField();
     private final Label labelErrore = new Label();
 
+    /**
+     * Costruisce la schermata di login.
+     *
+     * @param gestoreScene gestore di navigazione per passare alle altre schermate
+     */
     public LoginController(GestoreScene gestoreScene) {
         this.gestoreScene = gestoreScene;
         this.radice = costruisciVista();
     }
 
-    // Restituisce il nodo radice della schermata, da inserire nella Scene.
+    /** @return il nodo radice della schermata, da inserire nella Scene. */
     public VBox getRoot() {
         return radice;
     }
 
+    /**
+     * Costruisce la vista del login: campi username/password, bottoni e link.
+     *
+     * @return il contenitore radice della schermata
+     */
     private VBox costruisciVista() {
         VBox contenitore = new VBox(20);
         contenitore.setAlignment(Pos.CENTER);
@@ -84,6 +102,11 @@ public class LoginController {
         return contenitore;
     }
 
+    /**
+     * Valida i campi, cifra la password e invia il login al server. In caso di successo
+     * carica la dashboard adatta all'utente; altrimenti mostra un messaggio d'errore.
+     * La password in chiaro non lascia mai il controller.
+     */
     public void onConfermaLoginCliccato() {
         pulisciErrore();
 
@@ -115,22 +138,30 @@ public class LoginController {
         }
     }
 
+    /**
+     * Mostra un messaggio d'errore sotto i campi.
+     *
+     * @param messaggio testo dell'errore da mostrare
+     */
     private void mostraErrore(String messaggio) {
         labelErrore.setText(messaggio);
         labelErrore.setManaged(true);
         labelErrore.setVisible(true);
     }
 
+    /** Nasconde e svuota il messaggio d'errore. */
     private void pulisciErrore() {
         labelErrore.setText("");
         labelErrore.setManaged(false);
         labelErrore.setVisible(false);
     }
 
+    /** Naviga alla schermata di registrazione. */
     public void onRegistratiCliccato() {
         gestoreScene.vaiARegistrazione();
     }
 
+    /** Torna alla schermata iniziale (Start). */
     public void onIndietroCliccato() {
         gestoreScene.vaiAStart();
     }

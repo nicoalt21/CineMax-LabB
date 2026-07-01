@@ -2,7 +2,7 @@ package cinemax.client.controller.cliente;
 
 import cinemax.client.controller.shared.BaseLayoutController;
 import cinemax.client.controller.shared.DashboardBaseController;
-import cinemax.client.gui.component.CardProiezione;
+import cinemax.client.gui.component.card.CardProiezione;
 import cinemax.client.gui.navigation.GestoreScene;
 import cinemax.client.gui.util.FasciaEta;
 import cinemax.common.model.Prenotazione;
@@ -22,17 +22,22 @@ import javafx.scene.layout.VBox;
 import java.rmi.RemoteException;
 import java.time.format.DateTimeFormatter;
 
-/*
- Schermata di prenotazione di una proiezione, caricata nell'area centrale del
- BaseLayoutController come le altre dashboard del Cliente.
-
- Mostra il riepilogo della proiezione (CardProiezione in sola lettura), un selettore del
- numero di biglietti (1..posti liberi) e il totale aggiornato. Alla conferma invoca
- creaPrenotazione: in caso di successo mostra il codice e porta a "Le mie prenotazioni",
- altrimenti resta qui con un messaggio.
-
- Controlli lato client (la verifica forte resta sul server): blocco per Guest, limite
- d'eta del film, numero biglietti tra 1 e i posti liberi.
+/**
+ * Schermata di prenotazione di una proiezione, caricata nell'area centrale del
+ * BaseLayoutController come le altre dashboard del Cliente.
+ * <p>
+ * Mostra il riepilogo della proiezione (CardProiezione in sola lettura), un selettore del
+ * numero di biglietti (1..posti liberi) e il totale aggiornato. Alla conferma invoca
+ * creaPrenotazione: in caso di successo mostra il codice e porta a "Le mie prenotazioni",
+ * altrimenti resta qui con un messaggio.
+ * <p>
+ * Controlli lato client (la verifica forte resta sul server): blocco per Guest, limite
+ * d'eta del film, numero biglietti tra 1 e i posti liberi.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class PrenotazioneController extends DashboardBaseController {
 
@@ -54,6 +59,13 @@ public class PrenotazioneController extends DashboardBaseController {
     // perché il range dipende dai posti liberi della proiezione.
     private Spinner<Integer> selettoreBiglietti;
 
+    /**
+     * Costruisce il controller della vista adibita all'acquisto o prenotazione.
+     *
+     * @param gestoreScene Il gestore scene globale.
+     * @param layout Il layout padre per manipolare la navigazione e finestre secondarie.
+     * @param proiezione L'oggetto proiezione bersaglio della prenotazione.
+     */
     public PrenotazioneController(GestoreScene gestoreScene,
                                   BaseLayoutController layout,
                                   Proiezione proiezione) {
@@ -62,11 +74,19 @@ public class PrenotazioneController extends DashboardBaseController {
         this.proiezione = proiezione;
     }
 
+    /**
+     * Restituisce la radice.
+     *
+     * @return Il Parent radice.
+     */
     @Override
     public Parent getRoot() {
         return radice;
     }
 
+    /**
+     * Inizializza i componenti per visualizzare il selettore quantitativo e il calcolo importo.
+     */
     @Override
     public void inizializza() {
         radice.setPadding(new Insets(20));
@@ -111,12 +131,20 @@ public class PrenotazioneController extends DashboardBaseController {
         aggiornaDati();
     }
 
+    /**
+     * Ricalcola la visualizzazione in base al totale del prezzo.
+     */
     @Override
     public void aggiornaDati() {
         aggiornaTotale();
     }
 
-    // Riga "Numero di biglietti" con lo Spinner (1..posti liberi).
+    /**
+     * Costruisce la UI per selezionare quanti biglietti acquistare.
+     *
+     * @param postiLiberi Il massimo numero di biglietti disponibili da poter scegliere.
+     * @return Un blocco VBox contenente il selettore e l'etichetta associata.
+     */
     private VBox costruisciSelettore(int postiLiberi) {
         Label etichetta = new Label("Numero di biglietti");
         etichetta.getStyleClass().add("etichetta-campo");
@@ -138,11 +166,16 @@ public class PrenotazioneController extends DashboardBaseController {
         return blocco;
     }
 
-    // Barra inferiore con "Indietro" e (se prenotabile) "Conferma prenotazione".
+    /**
+     * Disegna i pulsanti per confermare o abbandonare la pagina.
+     *
+     * @param prenotabile Flag per decidere se abilitare o rimuovere il tasto di conferma finale.
+     * @return Una HBox coi bottoni instradati e spaziati.
+     */
     private HBox costruisciBarraInferiore(boolean prenotabile) {
         Button btnIndietro = new Button("Indietro");
         btnIndietro.getStyleClass().add("bottone-secondario");
-        btnIndietro.setOnAction(e -> layout.mostraDashboardRicercaPubblica());
+        btnIndietro.setOnAction(e -> layout.mostraDashboardRicerca());
 
         Region spazio = new Region();
         HBox.setHgrow(spazio, Priority.ALWAYS);
@@ -158,7 +191,9 @@ public class PrenotazioneController extends DashboardBaseController {
         return barra;
     }
 
-    // Ricalcola il totale (numero biglietti * costo) e lo mostra.
+    /**
+     * Aggiorna a schermo l'importo totale moltiplicando il prezzo base per i ticket selezionati.
+     */
     private void aggiornaTotale() {
         if (selettoreBiglietti == null) {
             return;
@@ -168,7 +203,9 @@ public class PrenotazioneController extends DashboardBaseController {
         labelTotale.setText(String.format("Totale: %.2f €", totale));
     }
 
-    // Chiede conferma in-app, riportando i dati salienti, poi effettua la prenotazione.
+    /**
+     * Chiede conferma in-app, riportando i dati salienti, poi effettua la prenotazione.
+     */
     private void chiediConferma() {
         int quantita = selettoreBiglietti.getValue();
         String titolo = proiezione.getFilm().getTitolo();
@@ -182,7 +219,9 @@ public class PrenotazioneController extends DashboardBaseController {
         layout.mostraConferma(messaggio, this::eseguiPrenotazione);
     }
 
-    // Invia la richiesta di prenotazione al servizio remoto e gestisce l'esito.
+    /**
+     * Invia la richiesta di prenotazione al servizio remoto e gestisce l'esito bloccando le operazioni multiple in coda.
+     */
     private void eseguiPrenotazione() {
         // Difesa: il Guest non dovrebbe poter arrivare qui (bottone bloccato dal layout).
         if (isGuest()) {
@@ -219,8 +258,8 @@ public class PrenotazioneController extends DashboardBaseController {
             layout.mostraScelta(
                     "Prenotazione confermata!\nCodice: " + codice,
                     "Le mie prenotazioni", "Chiudi",
-                    layout::mostraMiePrenotazioniPubblica,
-                    layout::mostraDashboardRicercaPubblica);
+                    layout::mostraMiePrenotazioni,
+                    layout::mostraDashboardRicerca);
 
         } catch (RemoteException e) {
             btnConferma.setDisable(false);

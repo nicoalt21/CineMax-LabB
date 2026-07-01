@@ -1,7 +1,7 @@
 package cinemax.client.controller.bigliettaio;
 
 import cinemax.client.controller.shared.DashboardBaseController;
-import cinemax.client.gui.component.CardPrenotazione;
+import cinemax.client.gui.component.card.CardPrenotazione;
 import cinemax.client.gui.navigation.GestoreScene;
 import cinemax.common.model.CriteriRicercaPrenotazione;
 import cinemax.common.model.Prenotazione;
@@ -21,21 +21,28 @@ import java.rmi.RemoteException;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/*
- Schermata "Verifica biglietto" del Bigliettaio, costruita interamente in codice Java.
-
- Permette di cercare una prenotazione in tre modi, scelti da un menu a tendina:
-   - per codice prenotazione (corrispondenza esatta);
-   - per username del cliente;
-   - per nome e cognome del cliente.
-
- Per username e nome+cognome possono risultare più prenotazioni a nome di quella
- persona: vengono mostrate tutte come card. "Verificare" qui significa trovare e
- mostrare la prenotazione (nessuno stato cambia): il bigliettaio confronta i dati a
- schermo con il biglietto del cliente.
-
- I dati arrivano dal servizio remoto (oggi: implementazione finta) tramite
- cercaPrenotazioni(CriteriRicercaPrenotazione).
+/**
+ * Schermata "Verifica biglietto" del Bigliettaio, costruita interamente in codice Java.
+ * <p>
+ * Permette di cercare una prenotazione in tre modi, scelti da un menu a tendina:
+ * <ul>
+ * <li>per codice prenotazione (corrispondenza esatta);</li>
+ * <li>per username del cliente;</li>
+ * <li>per nome e cognome del cliente.</li>
+ * </ul>
+ * <p>
+ * Per username e nome+cognome possono risultare più prenotazioni a nome di quella
+ * persona: vengono mostrate tutte come card. "Verificare" qui significa trovare e
+ * mostrare la prenotazione (nessuno stato cambia): il bigliettaio confronta i dati a
+ * schermo con il biglietto del cliente.
+ * <p>
+ * I dati arrivano dal servizio remoto (oggi: implementazione finta) tramite
+ * {@code cercaPrenotazioni(CriteriRicercaPrenotazione)}.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class VerificaBigliettoController extends DashboardBaseController {
 
@@ -52,15 +59,28 @@ public class VerificaBigliettoController extends DashboardBaseController {
     private final VBox contenitoreRisultati = new VBox(12);
     private final Label labelStato = new Label();
 
+    /**
+     * Costruisce il controller per la schermata di verifica dei biglietti.
+     *
+     * @param gestoreScene Il gestore delle scene per la navigazione e il recupero dei servizi.
+     */
     public VerificaBigliettoController(GestoreScene gestoreScene) {
         this.gestoreScene = gestoreScene;
     }
 
+    /**
+     * Restituisce il nodo radice dell'interfaccia grafica.
+     *
+     * @return Il Parent radice.
+     */
     @Override
     public Parent getRoot() {
         return radice;
     }
 
+    /**
+     * Inizializza i componenti visivi per la barra di ricerca e le aree di risultato.
+     */
     @Override
     public void inizializza() {
         radice.setPadding(new Insets(20));
@@ -102,12 +122,18 @@ public class VerificaBigliettoController extends DashboardBaseController {
         aggiornaCampi();
     }
 
+    /**
+     * In questo contesto, non c'è caricamento iniziale: la ricerca si attiva solo su esplicita richiesta.
+     */
     @Override
     public void aggiornaDati() {
         // Niente da caricare all'apertura: la ricerca parte su richiesta dell'utente.
     }
 
-    // Mostra/nasconde i campi in base al tipo di ricerca scelto e ne imposta i prompt.
+    /**
+     * Mostra o nasconde i campi testuali in base al tipo di ricerca selezionato,
+     * aggiornando inoltre i testi di suggerimento (prompt) al loro interno.
+     */
     private void aggiornaCampi() {
         String tipo = selettoreTipo.getValue();
         boolean nomeCognome = PER_NOME_COGNOME.equals(tipo);
@@ -129,6 +155,10 @@ public class VerificaBigliettoController extends DashboardBaseController {
         labelStato.setText("");
     }
 
+    /**
+     * Invia la richiesta di ricerca al server in base alla modalità selezionata
+     * e ai valori correnti nei campi di testo.
+     */
     private void eseguiRicerca() {
         contenitoreRisultati.getChildren().clear();
         String tipo = selettoreTipo.getValue();
@@ -174,6 +204,11 @@ public class VerificaBigliettoController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Mostra la lista di card relative alle prenotazioni ritornate dalla ricerca.
+     *
+     * @param risultati La lista delle prenotazioni da visualizzare.
+     */
     private void mostraRisultati(List<Prenotazione> risultati) {
         contenitoreRisultati.getChildren().clear();
 

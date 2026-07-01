@@ -19,15 +19,20 @@ import javafx.scene.layout.VBox;
 
 import java.rmi.RemoteException;
 
-/*
- Schermata "Crea film" del proiezionista, in una scheda distinta da "Crea proiezione" e
- con la stessa formattazione della schermata di registrazione (CampoConEtichetta in una
- griglia a due colonne).
-
- Il proiezionista inserisce i dati del film (titolo, genere, regista, anno, durata, età
- minima); alla conferma il film viene creato tramite ServizioProiezioni.aggiungiFilm. Se
- la creazione va a buon fine, il BaseLayoutController notifica l'esito all'utente e gli
- chiede se vuole creare anche una proiezione per quel film.
+/**
+ * Schermata "Crea film" del proiezionista, in una scheda distinta da "Crea proiezione" e
+ * con la stessa formattazione della schermata di registrazione (CampoConEtichetta in una
+ * griglia a due colonne).
+ * <p>
+ * Il proiezionista inserisce i dati del film (titolo, genere, regista, anno, durata, età
+ * minima); alla conferma il film viene creato tramite ServizioProiezioni.aggiungiFilm. Se
+ * la creazione va a buon fine, il BaseLayoutController notifica l'esito all'utente e gli
+ * chiede se vuole creare anche una proiezione per quel film.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class CreaFilmController extends DashboardBaseController {
 
@@ -54,22 +59,42 @@ public class CreaFilmController extends DashboardBaseController {
 
     private final Label labelMessaggio = new Label();
 
+    /**
+     * Costruisce il controller per la schermata di creazione di un nuovo film.
+     *
+     * @param gestoreScene Il gestore delle scene per l'accesso ai servizi.
+     * @param layout Il layout contenitore di riferimento per le notifiche all'utente.
+     */
     public CreaFilmController(GestoreScene gestoreScene, BaseLayoutController layout) {
         this.gestoreScene = gestoreScene;
         this.layout = layout;
     }
 
+    /**
+     * Crea e restituisce un nuovo TextField preimpostato.
+     *
+     * @param prompt Il suggerimento visibile quando il campo è vuoto.
+     * @return Il TextField configurato.
+     */
     private static TextField nuovoTextField(String prompt) {
         TextField tf = new TextField();
         tf.setPromptText(prompt);
         return tf;
     }
 
+    /**
+     * Restituisce la radice.
+     *
+     * @return Il Parent radice.
+     */
     @Override
     public Parent getRoot() {
         return radice;
     }
 
+    /**
+     * Inizializza l'interfaccia visiva popolando il modulo con campi e bottoni.
+     */
     @Override
     public void inizializza() {
         radice.setPadding(new Insets(20));
@@ -116,7 +141,11 @@ public class CreaFilmController extends DashboardBaseController {
         aggiornaDati();
     }
 
-    // Griglia a due colonne speculare alla schermata di registrazione.
+    /**
+     * Dispone i campi testuali su una griglia a due colonne.
+     *
+     * @return Il GridPane configurato.
+     */
     private GridPane costruisciGriglia() {
         GridPane griglia = new GridPane();
         griglia.setAlignment(Pos.CENTER);
@@ -140,6 +169,9 @@ public class CreaFilmController extends DashboardBaseController {
         return griglia;
     }
 
+    /**
+     * Ripulisce il modulo resettando tutti i campi allo stato iniziale.
+     */
     @Override
     public void aggiornaDati() {
         ((TextField) campoTitolo.getControllo()).clear();
@@ -152,6 +184,10 @@ public class CreaFilmController extends DashboardBaseController {
         pulisciMessaggio();
     }
 
+    /**
+     * Estrae, valida e invia i dati del nuovo film al server. In caso di successo
+     * delega la notifica al layout.
+     */
     private void crea() {
         pulisciMessaggio();
         pulisciErroriCampi();
@@ -215,6 +251,12 @@ public class CreaFilmController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Tenta di parsare una stringa come numero intero.
+     *
+     * @param testo Il testo estratto dal campo.
+     * @return L'intero parsato oppure null se il testo non è valido.
+     */
     private Integer leggiIntero(String testo) {
         if (testo == null || testo.isBlank()) {
             return null;
@@ -226,6 +268,9 @@ public class CreaFilmController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Ripulisce lo stile di errore visivo da tutti i campi del modulo.
+     */
     private void pulisciErroriCampi() {
         campoTitolo.pulisciErrore();
         campoGenere.pulisciErrore();
@@ -235,6 +280,11 @@ public class CreaFilmController extends DashboardBaseController {
         campoEtaMinima.pulisciErrore();
     }
 
+    /**
+     * Visualizza un messaggio di errore nell'apposita etichetta.
+     *
+     * @param messaggio Il testo dell'errore.
+     */
     private void mostraErrore(String messaggio) {
         labelMessaggio.getStyleClass().setAll("errore-generale");
         labelMessaggio.setText(messaggio);
@@ -242,6 +292,9 @@ public class CreaFilmController extends DashboardBaseController {
         labelMessaggio.setVisible(true);
     }
 
+    /**
+     * Rimuove messaggi e rimpicciolisce la label di stato.
+     */
     private void pulisciMessaggio() {
         labelMessaggio.setText("");
         labelMessaggio.setManaged(false);

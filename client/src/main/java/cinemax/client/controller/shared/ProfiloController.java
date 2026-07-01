@@ -18,22 +18,26 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
-/*
- Schermata "Profilo" comune a tutti i ruoli, costruita interamente in codice Java.
-
- Permette di modificare i dati personali (nome, cognome, data di nascita, domicilio) e,
- opzionalmente, la password. Username e ruolo non sono modificabili.
-
- Sicurezza: per salvare qualsiasi modifica l'utente deve re-inserire la password
- attuale, che viene confrontata (cifrata) con quella memorizzata.
-
- Il salvataggio invia l'utente aggiornato al server tramite
- ServizioAutenticazione.modificaUtente. Le modifiche vengono applicate all'oggetto in
- memoria e, se il server rifiuta o non e' raggiungibile, vengono annullate (rollback) per
- mantenere l'oggetto allineato allo stato remoto.
+/**
+ * Schermata "Profilo" comune a tutti i ruoli, costruita interamente in codice Java.
+ * <p>
+ * Permette di modificare i dati personali (nome, cognome, data di nascita, domicilio) e,
+ * opzionalmente, la password. Username e ruolo non sono modificabili.
+ * <p>
+ * Sicurezza: per salvare qualsiasi modifica l'utente deve re-inserire la password
+ * attuale, che viene confrontata (cifrata) con quella memorizzata.
+ * <p>
+ * Il salvataggio invia l'utente aggiornato al server tramite
+ * ServizioAutenticazione.modificaUtente. Le modifiche vengono applicate all'oggetto in
+ * memoria e, se il server rifiuta o non e' raggiungibile, vengono annullate (rollback) per
+ * mantenere l'oggetto allineato allo stato remoto.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
-public class
-ProfiloController extends DashboardBaseController {
+public class ProfiloController extends DashboardBaseController {
 
     private final GestoreScene gestoreScene;
 
@@ -57,6 +61,11 @@ ProfiloController extends DashboardBaseController {
             new CampoConEtichetta("Password attuale", true, new PasswordField(), LARGHEZZA_CAMPO);
     private final Label labelMessaggio = new Label();
 
+    /**
+     * Costruisce il controller per la gestione del profilo utente.
+     *
+     * @param gestoreScene Il gestore delle scene per l'accesso ai servizi.
+     */
     public ProfiloController(GestoreScene gestoreScene) {
         this.gestoreScene = gestoreScene;
     }
@@ -67,11 +76,19 @@ ProfiloController extends DashboardBaseController {
         return tf;
     }
 
+    /**
+     * Restituisce il nodo radice dell'interfaccia grafica.
+     *
+     * @return Il Parent radice.
+     */
     @Override
     public Parent getRoot() {
         return radice;
     }
 
+    /**
+     * Inizializza i componenti grafici della schermata profilo.
+     */
     @Override
     public void inizializza() {
         radice.setPadding(new Insets(20));
@@ -119,7 +136,11 @@ ProfiloController extends DashboardBaseController {
         aggiornaDati();
     }
 
-    // Griglia a due colonne speculare alla schermata di registrazione.
+    /**
+     * Costruisce la griglia a due colonne per disporre i campi.
+     *
+     * @return Il pannello GridPane configurato.
+     */
     private GridPane costruisciGriglia() {
         GridPane griglia = new GridPane();
         griglia.setAlignment(Pos.CENTER);
@@ -143,9 +164,11 @@ ProfiloController extends DashboardBaseController {
         return griglia;
     }
 
+    /**
+     * Riempie il modulo con i dati salvati dell'utente attualmente loggato.
+     */
     @Override
     public void aggiornaDati() {
-        // Precompila i campi con i dati attuali dell'utente.
         ((TextField) campoNome.getControllo()).setText(utenteLoggato.getNome());
         ((TextField) campoCognome.getControllo()).setText(utenteLoggato.getCognome());
         ((DatePicker) campoDataNascita.getControllo()).setValue(utenteLoggato.getDataNascita());
@@ -155,11 +178,14 @@ ProfiloController extends DashboardBaseController {
         pulisciMessaggio();
     }
 
+    /**
+     * Valida e salva i nuovi dati inseriti, previo inserimento della password attuale.
+     */
     private void salva() {
         pulisciMessaggio();
         pulisciErroriCampi();
 
-        // 1) Verifica della password attuale (obbligatoria per confermare).
+        // Verifica della password attuale (obbligatoria per confermare).
         String passwordAttuale = campoPasswordAttuale.getTesto();
         if (passwordAttuale == null || passwordAttuale.isBlank()) {
             campoPasswordAttuale.evidenziaErrore();
@@ -173,17 +199,48 @@ ProfiloController extends DashboardBaseController {
             return;
         }
 
-        // 2) Validazione minima dei campi.
-        if (campoNome.getTesto().isBlank() || campoCognome.getTesto().isBlank()
-                || campoDomicilio.getTesto().isBlank()) {
+        // Validazione dei campi obbligatori (Nome e Cognome).
+        if (campoNome.getTesto().isBlank() || campoCognome.getTesto().isBlank()) {
             if (campoNome.getTesto().isBlank()) campoNome.evidenziaErrore();
             if (campoCognome.getTesto().isBlank()) campoCognome.evidenziaErrore();
-            if (campoDomicilio.getTesto().isBlank()) campoDomicilio.evidenziaErrore();
-            mostraErrore("Nome, cognome e domicilio non possono essere vuoti.");
+            mostraErrore("Nome e cognome non possono essere vuoti.");
             return;
         }
 
-        // 3) Salvo i valori attuali per poter annullare le modifiche se il server rifiuta.
+        // Controllo caratteri validi per nome e cognome
+        String regexNomi = "^[A-Za-zÀ-ÿ\\s\\-']+$";
+        if (!campoNome.getTesto().matches(regexNomi) || !campoCognome.getTesto().matches(regexNomi)) {
+            if (!campoNome.getTesto().matches(regexNomi)) campoNome.evidenziaErrore();
+            if (!campoCognome.getTesto().matches(regexNomi)) campoCognome.evidenziaErrore();
+            mostraErrore("Nome e cognome possono contenere solo lettere, spazi, apostrofi o trattini.");
+            return;
+        }
+
+        // Validazione minima dei campi obbligatori (Nome e Cognome).
+        if (campoNome.getTesto().isBlank() || campoCognome.getTesto().isBlank()) {
+            if (campoNome.getTesto().isBlank()) campoNome.evidenziaErrore();
+            if (campoCognome.getTesto().isBlank()) campoCognome.evidenziaErrore();
+            mostraErrore("Nome e cognome non possono essere vuoti.");
+            return;
+        }
+
+        // Validazione data di nascita (non nel futuro).
+        java.time.LocalDate dataNascita = ((DatePicker) campoDataNascita.getControllo()).getValue();
+        if (dataNascita != null && dataNascita.isAfter(java.time.LocalDate.now())) {
+            campoDataNascita.evidenziaErrore();
+            mostraErrore("La data di nascita non può essere nel futuro.");
+            return;
+        }
+
+        // Validazione lunghezza nuova password (se l'utente vuole cambiarla).
+        String nuovaPass = campoNuovaPassword.getTesto();
+        if (!nuovaPass.isEmpty() && nuovaPass.length() < 5) {
+            campoNuovaPassword.evidenziaErrore();
+            mostraErrore("La nuova password deve avere almeno 5 caratteri.");
+            return;
+        }
+
+        // Salvo i valori attuali per poter annullare le modifiche se il server rifiuta.
         String vecchioNome = utenteLoggato.getNome();
         String vecchioCognome = utenteLoggato.getCognome();
         java.time.LocalDate vecchiaData = utenteLoggato.getDataNascita();
@@ -193,15 +250,16 @@ ProfiloController extends DashboardBaseController {
         // Applico le modifiche all'oggetto Utente.
         utenteLoggato.setNome(campoNome.getTesto().trim());
         utenteLoggato.setCognome(campoCognome.getTesto().trim());
-        utenteLoggato.setDataNascita(((DatePicker) campoDataNascita.getControllo()).getValue());
-        utenteLoggato.setLuogoDomicilio(campoDomicilio.getTesto().trim());
-        if (!campoNuovaPassword.getTesto().isBlank()) {
-            utenteLoggato.setPasswordCifrata(Cifrario.cifraPassword(campoNuovaPassword.getTesto()));
+        utenteLoggato.setDataNascita(dataNascita);
+
+        String domicilioInserito = campoDomicilio.getTesto().trim();
+        utenteLoggato.setLuogoDomicilio(domicilioInserito.isEmpty() ? null : domicilioInserito);
+
+        if (!nuovaPass.isEmpty()) {
+            utenteLoggato.setPasswordCifrata(Cifrario.cifraPassword(nuovaPass));
         }
 
-        // 4) Invio l'utente aggiornato al server. Se il server rifiuta (false) o non e'
-        // raggiungibile (RemoteException), ripristino i valori precedenti per non lasciare
-        // l'oggetto in memoria disallineato rispetto al server.
+        // Invio l'utente aggiornato al server.
         try {
             boolean ok = gestoreScene.getFornitoreServizi()
                     .getServizioAutenticazione()
@@ -222,8 +280,9 @@ ProfiloController extends DashboardBaseController {
         ((PasswordField) campoPasswordAttuale.getControllo()).clear();
     }
 
-    // Ripristina i dati dell'utente in memoria dopo un salvataggio fallito, cosi' l'oggetto
-    // resta allineato a quello sul server.
+    /**
+     * Ripristina i dati dell'utente in memoria dopo un salvataggio fallito.
+     */
     private void ripristina(String nome, String cognome, java.time.LocalDate data,
                             String domicilio, String password) {
         utenteLoggato.setNome(nome);

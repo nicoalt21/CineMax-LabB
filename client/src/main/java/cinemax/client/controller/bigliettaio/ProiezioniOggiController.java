@@ -1,7 +1,7 @@
 package cinemax.client.controller.bigliettaio;
 
 import cinemax.client.controller.shared.DashboardBaseController;
-import cinemax.client.gui.component.CardProiezione;
+import cinemax.client.gui.component.card.CardProiezione;
 import cinemax.client.gui.navigation.GestoreScene;
 import cinemax.common.model.CriteriRicercaProiezione;
 import cinemax.common.model.Proiezione;
@@ -16,12 +16,17 @@ import java.rmi.RemoteException;
 import java.time.LocalDate;
 import java.util.List;
 
-/*
- Schermata "Proiezioni di oggi" del Bigliettaio, costruita interamente in codice Java.
-
- Mostra le proiezioni la cui data coincide con la data odierna, come elenco di card in
- sola consultazione (nessuna azione di prenotazione/modifica: il bigliettaio le guarda
- soltanto). I dati arrivano dal servizio remoto (oggi: implementazione finta).
+/**
+ * Schermata "Proiezioni di oggi" del Bigliettaio, costruita interamente in codice Java.
+ * <p>
+ * Mostra le proiezioni la cui data coincide con la data odierna, come elenco di card in
+ * sola consultazione (nessuna azione di prenotazione/modifica: il bigliettaio le guarda
+ * soltanto). I dati arrivano dal servizio remoto (oggi: implementazione finta).
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class ProiezioniOggiController extends DashboardBaseController {
 
@@ -31,15 +36,28 @@ public class ProiezioniOggiController extends DashboardBaseController {
     private final VBox contenitoreRisultati = new VBox(12);
     private final Label labelStato = new Label();
 
+    /**
+     * Costruisce il controller per la dashboard delle proiezioni odierne.
+     *
+     * @param gestoreScene Il gestore delle scene utilizzato per la navigazione e l'accesso ai servizi.
+     */
     public ProiezioniOggiController(GestoreScene gestoreScene) {
         this.gestoreScene = gestoreScene;
     }
 
+    /**
+     * Restituisce il nodo radice dell'interfaccia grafica.
+     *
+     * @return Il Parent che contiene la vista.
+     */
     @Override
     public Parent getRoot() {
         return radice;
     }
 
+    /**
+     * Inizializza i componenti grafici della schermata e avvia il caricamento dei dati.
+     */
     @Override
     public void inizializza() {
         radice.setPadding(new Insets(20));
@@ -61,6 +79,9 @@ public class ProiezioniOggiController extends DashboardBaseController {
         aggiornaDati();
     }
 
+    /**
+     * Aggiorna la lista delle proiezioni richiedendo al server quelle programmate per la data odierna.
+     */
     @Override
     public void aggiornaDati() {
         labelStato.setText("Caricamento proiezioni di oggi...");
@@ -81,6 +102,11 @@ public class ProiezioniOggiController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Popola l'interfaccia con le card relative alle proiezioni fornite.
+     *
+     * @param proiezioni La lista delle proiezioni di oggi da visualizzare.
+     */
     private void mostraProiezioni(List<Proiezione> proiezioni) {
         contenitoreRisultati.getChildren().clear();
 

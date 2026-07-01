@@ -1,4 +1,4 @@
-package cinemax.client.gui.component;
+package cinemax.client.gui.component.card;
 
 import cinemax.client.gui.util.FasciaEta;
 import cinemax.common.model.Film;
@@ -18,21 +18,26 @@ import javafx.scene.shape.Circle;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
-/*
- Scheda (card) che mostra i dati di una singola Proiezione, costruita interamente in
- codice Java (niente FXML, come il resto della UI).
-
- Layout compatto: titolo (con pallino del limite d'età accanto), una riga di dettagli
- film, una riga con data/prezzo/posti e la riga azioni.
-
- Il pallino d'età usa un semaforo (verde/giallo/arancione/rosso) calcolato da
- FasciaEta in base all'età minima del film. Accanto al pallino è mostrato il valore
- numerico (es. "VM13").
-
- Riutilizzo tra ruoli: il bottone azione principale cambia etichetta e comportamento a
- seconda del ruolo (es. "Prenota" per il cliente, "Modifica" per il proiezionista). Le
- azioni vengono iniettate dal controller padre tramite setAzionePrincipale(...) e
- setAzioneSecondaria(...), così la stessa card serve dashboard diverse.
+/**
+ * Scheda (card) che mostra i dati di una singola Proiezione, costruita interamente in
+ * codice Java (niente FXML, come il resto della UI).
+ * <p>
+ * Layout compatto: titolo (con pallino del limite d'età accanto), una riga di dettagli
+ * film, una riga con data/prezzo/posti e la riga azioni.
+ * <p>
+ * Il pallino d'età usa un semaforo (verde/giallo/arancione/rosso) calcolato da
+ * {@link FasciaEta} in base all'età minima del film. Accanto al pallino è mostrato il
+ * valore numerico (es. "VM13").
+ * <p>
+ * Riutilizzo tra ruoli: il bottone azione principale cambia etichetta e comportamento a
+ * seconda del ruolo (es. "Prenota" per il cliente, "Modifica" per il proiezionista). Le
+ * azioni vengono iniettate dal controller padre tramite {@link #setAzionePrincipale} e
+ * {@link #setAzioneSecondaria}, così la stessa card serve dashboard diverse.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class CardProiezione extends VBox {
 
@@ -53,6 +58,8 @@ public class CardProiezione extends VBox {
     // Proiezione attualmente mostrata, passata alle azioni come argomento.
     private Proiezione proiezioneCorrente;
 
+    /** Costruisce una card proiezione vuota, focusabile da tastiera; i bottoni azione
+     *  restano nascosti finché non viene registrata la relativa azione. */
     public CardProiezione() {
         super(2);
         setPadding(new Insets(8, 16, 8, 16));
@@ -103,12 +110,15 @@ public class CardProiezione extends VBox {
         getChildren().addAll(rigaTitolo, dettagliFilmLabel, rigaInfo, staccoAzioni, rigaAzioni);
     }
 
-    /*
-     Popola la card con i dati di una proiezione. Il parametro ruoloUtente serve a
-     personalizzare l'etichetta del bottone principale (es. "Prenota" vs "Modifica").
-     Passare ruoloUtente null va bene per il Guest: in quel caso si usa l'etichetta di
-     default e il controllo accessi (attenuazione/blocco) è gestito dal layout tramite
-     registraNodoRiservato(card.getBottonePrincipale()).
+    /**
+     * Popola la card con i dati di una proiezione. Il parametro ruoloUtente serve a
+     * personalizzare l'etichetta del bottone principale (es. "Prenota" vs "Modifica").
+     * Passare ruoloUtente null va bene per il Guest: in quel caso si usa l'etichetta di
+     * default e il controllo accessi (attenuazione/blocco) è gestito dal layout tramite
+     * {@code registraNodoRiservato(card.getBottonePrincipale())}.
+     *
+     * @param p           proiezione da mostrare
+     * @param ruoloUtente ruolo dell'utente corrente (può essere null per il Guest)
      */
     public void compilaDatiProiezione(Proiezione p, Ruolo ruoloUtente) {
         this.proiezioneCorrente = p;
@@ -147,7 +157,12 @@ public class CardProiezione extends VBox {
         }
     }
 
-    // Colora il pallino in base alla fascia d'età e mostra il valore (es. "VM13").
+    /**
+     * Colora il pallino in base alla fascia d'età e mostra il valore (es. "VM13"),
+     * installando come tooltip la descrizione del limite d'età.
+     *
+     * @param etaMinima età minima richiesta dal film
+     */
     private void impostaPallinoEta(int etaMinima) {
         FasciaEta.Fascia fascia = FasciaEta.fasciaPerEta(etaMinima);
         pallinoEta.getStyleClass().setAll("pallino-eta", fascia.getClasseCss());
@@ -158,19 +173,23 @@ public class CardProiezione extends VBox {
         Tooltip.install(pallinoEta, new Tooltip(testoTooltip));
     }
 
-    /*
-     Blocca l'azione di prenotazione: disabilita il bottone principale e mostra il
-     motivo come tooltip. Usato quando l'utente non ha l'età minima per il film.
+    /**
+     * Blocca l'azione di prenotazione: disabilita il bottone principale e mostra il
+     * motivo come tooltip. Usato quando l'utente non ha l'età minima per il film.
+     *
+     * @param motivo testo esplicativo del blocco, mostrato come tooltip
      */
     public void bloccaPrenotazione(String motivo) {
         bottonePrincipale.setDisable(true);
         Tooltip.install(bottonePrincipale, new Tooltip(motivo));
     }
 
-    /*
-     Registra l'azione del bottone principale (es. "Prenota" per il cliente). Il
-     Consumer riceve la Proiezione mostrata da questa card. Registrare un'azione rende
-     il bottone visibile.
+    /**
+     * Registra l'azione del bottone principale (es. "Prenota" per il cliente). Il
+     * Consumer riceve la Proiezione mostrata da questa card. Registrare un'azione rende
+     * il bottone visibile.
+     *
+     * @param azione callback invocata al click, riceve la proiezione della card
      */
     public void setAzionePrincipale(Consumer<Proiezione> azione) {
         bottonePrincipale.setManaged(true);
@@ -187,9 +206,11 @@ public class CardProiezione extends VBox {
         });
     }
 
-    /*
-     Registra l'azione del bottone secondario (es. "Elimina" per il proiezionista).
-     Registrare un'azione rende il bottone visibile.
+    /**
+     * Registra l'azione del bottone secondario (es. "Elimina" per il proiezionista).
+     * Registrare un'azione rende il bottone visibile.
+     *
+     * @param azione callback invocata al click, riceve la proiezione della card
      */
     public void setAzioneSecondaria(Consumer<Proiezione> azione) {
         bottoneSecondario.setManaged(true);
@@ -205,34 +226,42 @@ public class CardProiezione extends VBox {
         });
     }
 
-    // Permette al controller padre di personalizzare l'etichetta del bottone principale.
+    /**
+     * Personalizza l'etichetta del bottone principale.
+     *
+     * @param testo nuovo testo del bottone principale
+     */
     public void setEtichettaPrincipale(String testo) {
         bottonePrincipale.setText(testo);
     }
 
-    /*
-     Espone il bottone principale per consentire al BaseLayoutController di registrarlo
-     come "nodo riservato": per il Guest verrà attenuato e reso non cliccabile.
-     Es: layout.registraNodoRiservato(card.getBottonePrincipale());
+    /**
+     * Espone il bottone principale per consentire al BaseLayoutController di registrarlo
+     * come "nodo riservato": per il Guest verrà attenuato e reso non cliccabile.
+     *
+     * @return il bottone azione principale della card
      */
     public Button getBottonePrincipale() {
         return bottonePrincipale;
     }
 
+    /** @return il bottone azione secondario della card. */
     public Button getBottoneSecondario() {
         return bottoneSecondario;
     }
 
+    /** @return la proiezione attualmente mostrata dalla card. */
     public Proiezione getProiezione() {
         return proiezioneCorrente;
     }
 
-    /*
-     Registra l'azione associata all'intera card (apertura dei dettagli). Oltre al click
-     del mouse, la collega a INVIO e SPAZIO quando la card ha il focus da tastiera, cosi'
-     l'interazione e' completa anche senza mouse. Il controller padre passa qui la stessa
-     azione che userebbe in setOnMouseClicked.
-    */
+    /**
+     * Registra l'azione associata all'intera card (apertura dei dettagli). Oltre al click
+     * del mouse, la collega a INVIO e SPAZIO quando la card ha il focus da tastiera, così
+     * l'interazione è completa anche senza mouse.
+     *
+     * @param azione callback invocata all'attivazione della card, riceve la proiezione
+     */
     public void setAzioneCard(Consumer<Proiezione> azione) {
         setOnMouseClicked(e -> {
             if (azione != null && proiezioneCorrente != null) {

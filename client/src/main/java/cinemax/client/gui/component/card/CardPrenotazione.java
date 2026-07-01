@@ -1,4 +1,4 @@
-package cinemax.client.gui.component;
+package cinemax.client.gui.component.card;
 
 import cinemax.client.gui.util.FasciaEta;
 import cinemax.common.model.Film;
@@ -19,20 +19,27 @@ import javafx.scene.shape.Circle;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
-/*
- Scheda (card) che mostra i dati di una singola Prenotazione, costruita interamente in
- codice Java (niente FXML, come il resto della UI).
-
- La card ha due modalità, decise dal controller:
-   - ATTIVA (proiezione futura): mostra il bottone "Annulla prenotazione".
-   - PASSATA (proiezione precedente a oggi): card semi-trasparente, sola consultazione,
-     nessuna azione (una prenotazione passata è già stata fruita).
-
- Il codice della prenotazione è mostrato in un campo di sola lettura ma selezionabile,
- così è comodo da copiare/incollare.
-
- L'azione di annullamento viene iniettata dal controller con setAzioneAnnulla(...): la
- card non sa nulla del server, si limita a raccogliere il click e a richiamare l'azione.
+/**
+ * Scheda (card) che mostra i dati di una singola Prenotazione, costruita interamente in
+ * codice Java (niente FXML, come il resto della UI).
+ * <p>
+ * La card ha due modalità, decise dal controller:
+ * <ul>
+ *   <li>ATTIVA (proiezione futura): mostra i bottoni "Modifica" e "Annulla";</li>
+ *   <li>PASSATA (proiezione già avvenuta): card semi-trasparente, sola consultazione,
+ *       nessuna azione (una prenotazione passata è già stata fruita).</li>
+ * </ul>
+ * Il codice della prenotazione è mostrato in un campo di sola lettura ma selezionabile,
+ * così è comodo da copiare/incollare.
+ * <p>
+ * Le azioni vengono iniettate dal controller con {@link #setAzioneAnnulla},
+ * {@link #setAzioneModifica} e {@link #setAzioneCard}: la card non conosce il server, si
+ * limita a raccogliere il click e a richiamare l'azione.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class CardPrenotazione extends VBox {
 
@@ -51,6 +58,8 @@ public class CardPrenotazione extends VBox {
 
     private Prenotazione prenotazioneCorrente;
 
+    /** Costruisce una card prenotazione vuota; la riga azioni resta vuota finché il
+     *  controller non registra le azioni (card attive) e assente per le passate. */
     public CardPrenotazione() {
         super(2);
         setPadding(new Insets(8, 16, 8, 16));
@@ -95,10 +104,13 @@ public class CardPrenotazione extends VBox {
         getChildren().addAll(rigaTitolo, rigaCodice, rigaInfo, staccoAzioni, rigaAzioni);
     }
 
-    /*
-     Popola la card con i dati di una prenotazione. Il parametro passata decide la
-     modalità: true = prenotazione passata (semi-trasparente, sola consultazione),
-     false = attiva (annullabile).
+    /**
+     * Popola la card con i dati di una prenotazione. Il parametro passata decide la
+     * modalità: true = prenotazione passata (semi-trasparente, sola consultazione),
+     * false = attiva (modificabile/annullabile).
+     *
+     * @param p       prenotazione da mostrare
+     * @param passata true se la proiezione è già avvenuta (card in sola lettura)
      */
     public void compilaDatiPrenotazione(Prenotazione p, boolean passata) {
         this.prenotazioneCorrente = p;
@@ -123,9 +135,11 @@ public class CardPrenotazione extends VBox {
         }
     }
 
-    /*
-     Registra l'azione di annullamento (solo per le card attive). Il Consumer riceve la
-     prenotazione. Registrare l'azione mostra il bottone "Annulla prenotazione".
+    /**
+     * Registra l'azione di annullamento (solo per le card attive). Registrare l'azione
+     * mostra il bottone "Annulla prenotazione".
+     *
+     * @param azione callback invocata al click, riceve la prenotazione della card
      */
     public void setAzioneAnnulla(Consumer<Prenotazione> azione) {
         Button btnAnnulla = new Button("Annulla prenotazione");
@@ -141,10 +155,11 @@ public class CardPrenotazione extends VBox {
         rigaAzioni.getChildren().add(btnAnnulla);
     }
 
-    /*
-     Registra l'azione di modifica/spostamento (solo per le card attive). Mostra il
-     bottone "Modifica prenotazione". Per coerenza visiva il bottone modifica appare
-     prima di "Annulla" nella riga azioni.
+    /**
+     * Registra l'azione di modifica/spostamento (solo per le card attive). Mostra il
+     * bottone "Modifica prenotazione", inserito prima di "Annulla" nella riga azioni.
+     *
+     * @param azione callback invocata al click, riceve la prenotazione della card
      */
     public void setAzioneModifica(Consumer<Prenotazione> azione) {
         Button btnModifica = new Button("Mod. prenotazione");
@@ -160,10 +175,12 @@ public class CardPrenotazione extends VBox {
         rigaAzioni.getChildren().add(0, btnModifica);
     }
 
-    /*
-     Registra l'azione associata all'intera card (apertura dei dettagli prenotazione).
-     Rende la card cliccabile col mouse e attivabile da tastiera (INVIO/SPAZIO). Usata
-     solo per le card attive: le passate restano in sola consultazione.
+    /**
+     * Registra l'azione associata all'intera card (apertura dei dettagli prenotazione).
+     * Rende la card cliccabile col mouse e attivabile da tastiera (INVIO/SPAZIO). Usata
+     * solo per le card attive: le passate restano in sola consultazione.
+     *
+     * @param azione callback invocata all'attivazione della card, riceve la prenotazione
      */
     public void setAzioneCard(Consumer<Prenotazione> azione) {
         setFocusTraversable(true);
@@ -185,7 +202,12 @@ public class CardPrenotazione extends VBox {
         });
     }
 
-    // Colora il pallino in base alla fascia d'età e mostra il valore (es. "VM13").
+    /**
+     * Colora il pallino in base alla fascia d'età e mostra il valore (es. "VM13"),
+     * installando come tooltip la descrizione del limite d'età.
+     *
+     * @param etaMinima età minima richiesta dal film
+     */
     private void impostaPallinoEta(int etaMinima) {
         FasciaEta.Fascia fascia = FasciaEta.fasciaPerEta(etaMinima);
         pallinoEta.getStyleClass().setAll("pallino-eta", fascia.getClasseCss());
@@ -196,6 +218,7 @@ public class CardPrenotazione extends VBox {
         Tooltip.install(pallinoEta, new Tooltip(testoTooltip));
     }
 
+    /** @return la prenotazione attualmente mostrata dalla card. */
     public Prenotazione getPrenotazione() {
         return prenotazioneCorrente;
     }

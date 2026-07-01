@@ -30,23 +30,30 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-/*
- Schermata "Crea proiezione" del proiezionista, costruita interamente in codice Java e
- con la stessa formattazione della schermata di registrazione (CampoConEtichetta in una
- griglia a due colonne, larghezze e classi CSS condivise).
-
- Controlli realizzati:
-  - TITOLO FILM: campo testuale con suggerimenti (ComboBox editabile) popolati in tempo
-    reale da ServizioProiezioni.cercaFilmPerTitolo. Il film e' identificato dalla PK
-    idFilm: il titolo serve solo per cercare. Finche' il testo non coincide esattamente
-    (case-insensitive) col titolo di un film esistente, il titolo non e' valido e compare
-    un errore.
-  - COSTO: solo numeri, >= 0, al massimo 2 decimali (centesimi). Il TextFormatter
-    impedisce gia' di digitare lettere o una terza cifra decimale.
-  - DATA: scelta con DatePicker.
-  - ORARIO: NON si digita. Si sceglie da una ComboBox di finestre libere (slot ogni 5
-    minuti) calcolate da ServizioProiezioni.finestreLibere per il film e la data scelti,
-    tenendo conto della durata del film e delle altre proiezioni gia' programmate.
+/**
+ * Schermata "Crea proiezione" del proiezionista, costruita interamente in codice Java e
+ * con la stessa formattazione della schermata di registrazione (CampoConEtichetta in una
+ * griglia a due colonne, larghezze e classi CSS condivise).
+ * <p>
+ * Controlli realizzati:
+ * <ul>
+ * <li>TITOLO FILM: campo testuale con suggerimenti (ComboBox editabile) popolati in tempo
+ * reale da ServizioProiezioni.cercaFilmPerTitolo. Il film e' identificato dalla PK
+ * idFilm: il titolo serve solo per cercare. Finche' il testo non coincide esattamente
+ * (case-insensitive) col titolo di un film esistente, il titolo non e' valido e compare
+ * un errore.</li>
+ * <li>COSTO: solo numeri, >= 0, al massimo 2 decimali (centesimi). Il TextFormatter
+ * impedisce gia' di digitare lettere o una terza cifra decimale.</li>
+ * <li>DATA: scelta con DatePicker.</li>
+ * <li>ORARIO: NON si digita. Si sceglie da una ComboBox di finestre libere (slot ogni 5
+ * minuti) calcolate da ServizioProiezioni.finestreLibere per il film e la data scelti,
+ * tenendo conto della durata del film e delle altre proiezioni gia' programmate.</li>
+ * </ul>
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class CreaProiezioneController extends DashboardBaseController {
 
@@ -79,22 +86,42 @@ public class CreaProiezioneController extends DashboardBaseController {
     // Evita rientri durante l'aggiornamento programmatico dei suggerimenti.
     private boolean aggiornamentoInterno = false;
 
+    /**
+     * Costruisce il controller per la schedulazione di una nuova proiezione.
+     *
+     * @param gestoreScene Il gestore per i riferimenti ai servizi di backend.
+     * @param layout Il layout di contorno.
+     */
     public CreaProiezioneController(GestoreScene gestoreScene, BaseLayoutController layout) {
         this.gestoreScene = gestoreScene;
         this.layout = layout;
     }
 
+    /**
+     * Ritorna una text field basilare.
+     *
+     * @param prompt Suggerimento al suo interno.
+     * @return TextField.
+     */
     private static TextField nuovoTextField(String prompt) {
         TextField tf = new TextField();
         tf.setPromptText(prompt);
         return tf;
     }
 
+    /**
+     * Restituisce la radice.
+     *
+     * @return Il Parent radice.
+     */
     @Override
     public Parent getRoot() {
         return radice;
     }
 
+    /**
+     * Inizializza i componenti interattivi con le complesse logiche di validazione.
+     */
     @Override
     public void inizializza() {
         radice.setPadding(new Insets(20));
@@ -146,9 +173,11 @@ public class CreaProiezioneController extends DashboardBaseController {
         aggiornaDati();
     }
 
-    // ComboBox editabile per il titolo: mostra TUTTI i film come suggerimenti (caricati una
-    // sola volta) e si risolve a un Film tramite la PK idFilm. Il testo digitato resta
-    // sempre visibile nell'editor; la validazione è in tempo reale sul testo.
+    /**
+     * ComboBox editabile per il titolo: mostra TUTTI i film come suggerimenti (caricati una
+     * sola volta) e si risolve a un Film tramite la PK idFilm. Il testo digitato resta
+     * sempre visibile nell'editor; la validazione è in tempo reale sul testo.
+     */
     private void configuraSelettoreTitolo() {
         selettoreTitolo.setEditable(true);
         selettoreTitolo.setMaxWidth(Double.MAX_VALUE);
@@ -218,7 +247,9 @@ public class CreaProiezioneController extends DashboardBaseController {
         });
     }
 
-    // Carica una sola volta tutti i film nella tendina dei suggerimenti.
+    /**
+     * Carica una sola volta tutti i film nella tendina dei suggerimenti.
+     */
     private void caricaSuggerimenti() {
         try {
             List<Film> tutti = gestoreScene.getFornitoreServizi()
@@ -229,7 +260,9 @@ public class CreaProiezioneController extends DashboardBaseController {
         }
     }
 
-    // Costo: solo cifre, >= 0, al massimo 2 decimali. Il filtro blocca input non validi.
+    /**
+     * Costo: solo cifre, >= 0, al massimo 2 decimali. Il filtro blocca input non validi.
+     */
     private void configuraCampoCosto() {
         TextField tf = (TextField) campoCosto.getControllo();
         // Ammette: vuoto, interi, oppure numero con max 2 decimali (punto o virgola).
@@ -247,6 +280,9 @@ public class CreaProiezioneController extends DashboardBaseController {
         tf.setTextFormatter(formatter);
     }
 
+    /**
+     * Configura il selettore dell'orario con l'opportuno formatter visivo.
+     */
     private void configuraSelettoreOra() {
         selettoreOra.setMaxWidth(Double.MAX_VALUE);
         selettoreOra.setVisibleRowCount(8);
@@ -265,13 +301,20 @@ public class CreaProiezioneController extends DashboardBaseController {
         selettoreOra.setDisable(true);
     }
 
+    /**
+     * Collega il listener al date picker.
+     */
     private void configuraDatePicker() {
         DatePicker dp = (DatePicker) campoData.getControllo();
         // Ricalcola le finestre quando cambia la data.
         dp.valueProperty().addListener((obs, vecchia, nuova) -> aggiornaFinestreLibere());
     }
 
-    // Griglia a due colonne speculare alla schermata di registrazione.
+    /**
+     * Dispone i campi testuali su una griglia a due colonne.
+     *
+     * @return Il GridPane configurato.
+     */
     private GridPane costruisciGriglia() {
         GridPane griglia = new GridPane();
         griglia.setAlignment(Pos.CENTER);
@@ -292,6 +335,9 @@ public class CreaProiezioneController extends DashboardBaseController {
         return griglia;
     }
 
+    /**
+     * Ripulisce e ricarica i dati resettando i controlli visivi.
+     */
     @Override
     public void aggiornaDati() {
         aggiornamentoInterno = true;
@@ -313,7 +359,12 @@ public class CreaProiezioneController extends DashboardBaseController {
         pulisciMessaggio();
     }
 
-    // Normalizza un titolo per il confronto: minuscolo e spazi ridondanti rimossi.
+    /**
+     * Normalizza un titolo per il confronto: minuscolo e spazi ridondanti rimossi.
+     *
+     * @param s Il titolo originale.
+     * @return Il titolo normalizzato per la ricerca robusta.
+     */
     private String normalizza(String s) {
         if (s == null) {
             return "";
@@ -321,12 +372,14 @@ public class CreaProiezioneController extends DashboardBaseController {
         return s.trim().toLowerCase().replaceAll("\\s+", " ");
     }
 
-    /*
-     Controllo in tempo reale del titolo. Cerca tra i film (per titolo) quello il cui titolo
-     normalizzato coincide esattamente col testo digitato: se lo trova memorizza il film
-     (PK) e abilita il calcolo delle finestre, altrimenti segnala che il titolo non è
-     valido. NON ricostruisce la tendina dei suggerimenti (caricata una volta sola), così
-     il testo digitato resta sempre visibile.
+    /**
+     * Controllo in tempo reale del titolo. Cerca tra i film (per titolo) quello il cui titolo
+     * normalizzato coincide esattamente col testo digitato: se lo trova memorizza il film
+     * (PK) e abilita il calcolo delle finestre, altrimenti segnala che il titolo non è
+     * valido. NON ricostruisce la tendina dei suggerimenti (caricata una volta sola), così
+     * il testo digitato resta sempre visibile.
+     *
+     * @param testo La porzione di testo inserita.
      */
     private void verificaTitolo(String testo) {
         Film precedente = filmRiconosciuto;
@@ -366,9 +419,9 @@ public class CreaProiezioneController extends DashboardBaseController {
         aggiornaFinestreLibere();
     }
 
-    /*
-     Ricalcola le finestre libere in base al film riconosciuto e alla data scelta. Se manca
-     uno dei due, la ComboBox degli orari resta disabilitata e vuota.
+    /**
+     * Ricalcola le finestre libere in base al film riconosciuto e alla data scelta. Se manca
+     * uno dei due, la ComboBox degli orari resta disabilitata e vuota.
      */
     private void aggiornaFinestreLibere() {
         LocalDate data = ((DatePicker) campoData.getControllo()).getValue();
@@ -406,6 +459,9 @@ public class CreaProiezioneController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Raccoglie, valida i dati e invia la richiesta di schedulazione al servizio remoto.
+     */
     private void crea() {
         pulisciMessaggio();
         campoCosto.pulisciErrore();
@@ -469,6 +525,11 @@ public class CreaProiezioneController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Trasforma il testo del prezzo in double.
+     *
+     * @return Il valore del prezzo.
+     */
     private Double leggiCosto() {
         String testo = ((TextField) campoCosto.getControllo()).getText();
         if (testo == null || testo.isBlank()) {
@@ -482,6 +543,9 @@ public class CreaProiezioneController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Ripulisce lo stile di errore visivo da tutti i campi del modulo.
+     */
     private void pulisciErroriCampi() {
         campoTitolo.pulisciErrore();
         campoCosto.pulisciErrore();
@@ -489,6 +553,11 @@ public class CreaProiezioneController extends DashboardBaseController {
         campoOra.pulisciErrore();
     }
 
+    /**
+     * Visualizza un messaggio di errore nell'apposita etichetta.
+     *
+     * @param messaggio Il testo dell'errore.
+     */
     private void mostraErrore(String messaggio) {
         labelMessaggio.getStyleClass().setAll("errore-generale");
         labelMessaggio.setText(messaggio);
@@ -496,6 +565,9 @@ public class CreaProiezioneController extends DashboardBaseController {
         labelMessaggio.setVisible(true);
     }
 
+    /**
+     * Rimuove messaggi di errore visualizzati.
+     */
     private void pulisciMessaggio() {
         labelMessaggio.setText("");
         labelMessaggio.setManaged(false);

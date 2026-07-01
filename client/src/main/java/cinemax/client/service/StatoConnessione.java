@@ -17,6 +17,11 @@ import java.util.concurrent.TimeUnit;
  * a cui la UI si lega, e un heartbeat periodico verso {@link ServizioConnessione#ping}:
  * finché il ping riesce {@code connesso} è true, al primo fallimento diventa false, e torna
  * true se il server ridiventa raggiungibile. La property è sempre aggiornata sul thread JavaFX.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public final class StatoConnessione {
 
@@ -37,25 +42,33 @@ public final class StatoConnessione {
     private StatoConnessione() {
     }
 
+    /** @return l'unica istanza (singleton) dello stato di connessione. */
     public static StatoConnessione getInstance() {
         return ISTANZA;
     }
 
+    /** @return l'id opaco di questa sessione client, mostrato nei log del server. */
     public String getIdClient() {
         return idClient;
     }
 
-    // Property osservabile: true se il client è collegato al server.
+    /** @return property osservabile: true se il client è collegato al server. */
     public ReadOnlyBooleanProperty connessoProperty() {
         return connesso.getReadOnlyProperty();
     }
 
+    /** @return true se al momento il client risulta connesso al server. */
     public boolean isConnesso() {
         return connesso.get();
     }
 
-    // Registra il client presso il server (che lo stampa) e avvia l'heartbeat periodico.
-    // Da chiamare una volta, appena ottenuto lo stub reale.
+    /**
+     * Registra il client presso il server (che ne stampa l'id) e avvia l'heartbeat
+     * periodico. Da chiamare una volta sola, appena ottenuto lo stub reale.
+     *
+     * @param servizio stub remoto del servizio di connessione
+     * @throws RemoteException se la registrazione iniziale verso il server fallisce
+     */
     public void avviaMonitoraggio(ServizioConnessione servizio) throws RemoteException {
         this.servizioConnessione = servizio;
         servizio.registraConnessione(idClient);
@@ -72,7 +85,10 @@ public final class StatoConnessione {
         }
     }
 
-    // Un singolo battito: aggiorna lo stato in base all'esito del ping.
+    /**
+     * Esegue un singolo battito dell'heartbeat: se il ping riesce imposta lo stato a
+     * connesso, se lancia RemoteException lo imposta a disconnesso.
+     */
     private void battito() {
         ServizioConnessione s = servizioConnessione;
         if (s == null) {
@@ -87,7 +103,12 @@ public final class StatoConnessione {
         }
     }
 
-    // Aggiorna la property sul thread JavaFX, evitando notifiche ridondanti.
+    /**
+     * Aggiorna la property sul thread JavaFX, evitando notifiche ridondanti quando il
+     * valore non cambia.
+     *
+     * @param valore nuovo stato di connessione da pubblicare
+     */
     private void impostaConnesso(boolean valore) {
         Platform.runLater(() -> {
             if (connesso.get() != valore) {
@@ -96,7 +117,10 @@ public final class StatoConnessione {
         });
     }
 
-    // Comunica al server la chiusura (best-effort) e ferma l'heartbeat.
+    /**
+     * Comunica al server la chiusura della sessione (best-effort) e ferma l'heartbeat.
+     * Se il server è già irraggiungibile la notifica viene ignorata senza errori.
+     */
     public void chiudi() {
         if (scheduler != null) {
             scheduler.shutdownNow();

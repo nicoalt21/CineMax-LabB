@@ -17,26 +17,25 @@ import javafx.scene.layout.VBox;
 
 import java.util.function.Consumer;
 
-/*
- Barra di ricerca riutilizzabile, costruita interamente in codice Java (niente FXML).
-
- Design compatto: a riposo mostra solo il campo di ricerca per titolo, un bottone
- "Filtri" e il bottone "Cerca". I filtri avanzati (genere, intervallo di date,
- intervallo di prezzo) sono raccolti in un pannello che si apre/chiude cliccando
- "Filtri", così la barra resta pulita ma mantiene tutte le funzionalità.
-
- Un piccolo contatore sul bottone "Filtri" indica quanti filtri avanzati sono attivi,
- utile quando il pannello è chiuso.
-
- Alla pressione di "Cerca" i criteri vengono impacchettati in un oggetto
- CriteriRicercaProiezione (modulo condiviso cinemax.common.model) e passati al
- controller padre tramite il listener registrato con setListenerRicerca(...).
-
- Campi disponibili (vedi specifiche, cercaProiezione()):
-   - titolo (anche parziale): CriteriRicercaProiezione.titolo
-   - genere: CriteriRicercaProiezione.genere
-   - intervallo di date (da / a): CriteriRicercaProiezione.dataInizio / dataFine
-   - intervallo di prezzo (min/max): CriteriRicercaProiezione.costoMin / costoMax
+/**
+ * Barra di ricerca riutilizzabile, costruita interamente in codice Java (niente FXML).
+ * <p>
+ * Design compatto: a riposo mostra solo il campo di ricerca per titolo, un bottone
+ * "Filtri" e il bottone "Cerca". I filtri avanzati (genere, intervallo di date,
+ * intervallo di prezzo) sono raccolti in un pannello che si apre/chiude cliccando
+ * "Filtri", così la barra resta pulita ma mantiene tutte le funzionalità.
+ * <p>
+ * Un piccolo contatore sul bottone "Filtri" indica quanti filtri avanzati sono attivi,
+ * utile quando il pannello è chiuso.
+ * <p>
+ * Alla pressione di "Cerca" i criteri vengono impacchettati in un oggetto
+ * {@link CriteriRicercaProiezione} e passati al controller padre tramite il listener
+ * registrato con {@link #setListenerRicerca(Consumer)}.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class FilterBarComponent extends VBox {
 
@@ -67,6 +66,8 @@ public class FilterBarComponent extends VBox {
 
     private boolean pannelloAperto = false;
 
+    /** Costruisce la barra di ricerca con la riga principale sempre visibile e il
+     *  pannello dei filtri avanzati inizialmente chiuso. */
     public FilterBarComponent() {
         super(0);
         getStyleClass().add("barra-filtri");
@@ -87,7 +88,11 @@ public class FilterBarComponent extends VBox {
         aggiornaBadgeFiltri();
     }
 
-    // Riga sempre visibile: campo di ricerca + toggle Filtri + bottone Cerca.
+    /**
+     * Costruisce la riga sempre visibile: campo di ricerca, toggle "Filtri" e "Cerca".
+     *
+     * @return la riga principale della barra
+     */
     private HBox costruisciRigaPrincipale() {
         HBox riga = new HBox(10);
         riga.setAlignment(Pos.CENTER_LEFT);
@@ -127,7 +132,12 @@ public class FilterBarComponent extends VBox {
         return riga;
     }
 
-    // Pannello dei filtri avanzati: genere, date (da/a), prezzo (min/max), + Azzera.
+    /**
+     * Costruisce il pannello dei filtri avanzati: genere, date (da/a), prezzo (min/max)
+     * e il bottone "Azzera filtri".
+     *
+     * @return il contenitore del pannello avanzati
+     */
     private VBox costruisciPannelloAvanzati() {
         GridPane griglia = new GridPane();
         griglia.getStyleClass().add("pannello-filtri");
@@ -184,7 +194,13 @@ public class FilterBarComponent extends VBox {
         return contenitore;
     }
 
-    // Colonna "etichetta sopra, controllo sotto", a tutta larghezza.
+    /**
+     * Costruisce una colonna "etichetta sopra, controllo sotto" a tutta larghezza.
+     *
+     * @param etichetta testo dell'etichetta
+     * @param controllo nodo di input della colonna
+     * @return la colonna (VBox) etichetta + controllo
+     */
     private VBox costruisciColonna(String etichetta, javafx.scene.Node controllo) {
         VBox colonna = new VBox(4);
         Label label = new Label(etichetta);
@@ -200,7 +216,7 @@ public class FilterBarComponent extends VBox {
         return colonna;
     }
 
-    // Apre/chiude il pannello dei filtri avanzati.
+    /** Apre o chiude il pannello dei filtri avanzati, aggiornando lo stile del bottone. */
     private void togglePannello() {
         pannelloAperto = !pannelloAperto;
         pannelloAvanzati.setVisible(pannelloAperto);
@@ -212,9 +228,13 @@ public class FilterBarComponent extends VBox {
         }
     }
 
-    // Mostra o nasconde i blocchi opzionali (date e prezzo) all'interno del pannello.
-    // Se nessuno dei due è visibile, il bottone "Filtri" viene nascosto del tutto:
-    // in quel caso restano solo titolo + genere, comunque accessibili.
+    /**
+     * Mostra o nasconde i blocchi opzionali (date e prezzo) all'interno del pannello.
+     * Se nessuno dei due è visibile, restano comunque accessibili titolo e genere.
+     *
+     * @param mostraDate   se true mostra le colonne dell'intervallo date
+     * @param mostraPrezzo se true mostra la colonna dell'intervallo prezzo
+     */
     public void impostaVisibilitaFiltri(boolean mostraDate, boolean mostraPrezzo) {
         colonnaDate1.setVisible(mostraDate);
         colonnaDate1.setManaged(mostraDate);
@@ -224,12 +244,20 @@ public class FilterBarComponent extends VBox {
         colonnaPrezzo.setManaged(mostraPrezzo);
     }
 
-    // Registra il listener che riceverà i criteri quando l'utente preme Cerca.
+    /**
+     * Registra il listener che riceverà i criteri quando l'utente preme Cerca.
+     *
+     * @param listener callback che riceve i criteri di ricerca compilati
+     */
     public void setListenerRicerca(Consumer<CriteriRicercaProiezione> listener) {
         this.listenerRicerca = listener;
     }
 
-    // Costruisce i CriteriRicercaProiezione dai campi e li passa al listener del padre.
+    /**
+     * Costruisce i {@link CriteriRicercaProiezione} dai campi e li passa al listener del
+     * padre. Valida localmente i prezzi (devono essere numerici) mostrando un errore in
+     * caso contrario.
+     */
     private void onCercaCliccato() {
         pulisciErrore();
 
@@ -261,7 +289,7 @@ public class FilterBarComponent extends VBox {
         }
     }
 
-    // Reimposta tutti i campi allo stato iniziale (vuoto).
+    /** Reimposta tutti i campi (titolo e filtri avanzati) allo stato iniziale vuoto. */
     public void svuotaFiltri() {
         campoTitolo.clear();
         campoGenere.clear();
@@ -273,8 +301,10 @@ public class FilterBarComponent extends VBox {
         aggiornaBadgeFiltri();
     }
 
-    // Azzera i filtri avanzati (genere, date, prezzo) mantenendo il titolo inserito.
-    // Dopo l'azzeramento rilancia la ricerca con il solo titolo rimasto.
+    /**
+     * Azzera i filtri avanzati (genere, date, prezzo) mantenendo il titolo inserito, poi
+     * rilancia la ricerca con il solo titolo rimasto.
+     */
     public void azzeraFiltriTranneTitolo() {
         campoGenere.clear();
         dataDa.setValue(null);
@@ -286,8 +316,13 @@ public class FilterBarComponent extends VBox {
         onCercaCliccato(); // ripropone i risultati col solo titolo
     }
 
-    // Imposta dei valori predefiniti nei filtri (es. titolo passato dall'utente Guest
-    // nel menu iniziale). Passare null a un parametro lo lascia invariato/vuoto.
+    /**
+     * Imposta dei valori predefiniti nei filtri (es. titolo passato dall'utente Guest nel
+     * menu iniziale). Passare null a un parametro lo lascia invariato.
+     *
+     * @param titolo titolo da precompilare (null = invariato)
+     * @param genere genere da precompilare (null = invariato)
+     */
     public void impostaFiltriPredefiniti(String titolo, String genere) {
         if (titolo != null) {
             campoTitolo.setText(titolo);
@@ -298,7 +333,7 @@ public class FilterBarComponent extends VBox {
         aggiornaBadgeFiltri();
     }
 
-    // Conta i filtri avanzati attivi (genere, date, prezzo) e aggiorna il badge.
+    /** Conta i filtri avanzati attivi (genere, date, prezzo) e aggiorna il badge numerico. */
     private void aggiornaBadgeFiltri() {
         int attivi = 0;
         if (vuotoComeNull(campoGenere.getText()) != null) attivi++;
@@ -315,11 +350,20 @@ public class FilterBarComponent extends VBox {
 
     // Helper privati
 
+    /**
+     * @param s stringa da normalizzare
+     * @return la stringa senza spazi ai lati, oppure null se vuota o composta di soli spazi
+     */
     private static String vuotoComeNull(String s) {
         return (s == null || s.trim().isEmpty()) ? null : s.trim();
     }
 
-    // Converte la stringa in Double; null se vuota o non numerica.
+    /**
+     * Converte la stringa in Double (accettando la virgola come separatore decimale).
+     *
+     * @param s testo da convertire
+     * @return il valore numerico, oppure null se la stringa è vuota o non numerica
+     */
     private static Double leggiPrezzo(String s) {
         if (s == null || s.trim().isEmpty()) {
             return null;
@@ -331,18 +375,28 @@ public class FilterBarComponent extends VBox {
         }
     }
 
-    // Vero se l'utente ha scritto qualcosa ma non è un numero valido.
+    /**
+     * @param testo  testo inserito dall'utente
+     * @param valore valore numerico già convertito (null se conversione fallita)
+     * @return true se l'utente ha scritto qualcosa che non è un numero valido
+     */
     private static boolean prezzoNonValido(String testo, Double valore) {
         boolean testoPresente = testo != null && !testo.trim().isEmpty();
         return testoPresente && valore == null;
     }
 
+    /**
+     * Mostra un messaggio di errore sotto la barra.
+     *
+     * @param messaggio testo dell'errore da mostrare
+     */
     private void mostraErrore(String messaggio) {
         labelErrore.setText(messaggio);
         labelErrore.setManaged(true);
         labelErrore.setVisible(true);
     }
 
+    /** Nasconde e svuota il messaggio di errore. */
     private void pulisciErrore() {
         labelErrore.setText("");
         labelErrore.setManaged(false);

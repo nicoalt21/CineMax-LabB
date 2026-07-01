@@ -8,24 +8,41 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-/* Schermata iniziale, mostra i pulsanti Accedi / Registrati e l'ingresso in modalità Guest.
- Riceve il GestioreScene nel costruttore per poter navigare verso le altre schermate.
+/**
+ * Schermata iniziale: mostra i pulsanti Accedi / Registrati e l'ingresso in modalità
+ * Guest. Riceve il GestoreScene nel costruttore per poter navigare verso le altre
+ * schermate.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class StartController {
 
     private final GestoreScene gestoreScene;
     private final VBox radice;
 
+    /**
+     * Costruisce la schermata iniziale.
+     *
+     * @param gestoreScene gestore di navigazione per passare alle altre schermate
+     */
     public StartController(GestoreScene gestoreScene) {
         this.gestoreScene = gestoreScene;
         this.radice = costruisciVista();
     }
 
-    // Restituisce il nodo radice della schermata, da inserire nella Scene.
+    /** @return il nodo radice della schermata, da inserire nella Scene. */
     public VBox getRoot() {
         return radice;
     }
 
+    /**
+     * Costruisce la vista con titolo, sottotitolo e i bottoni di accesso.
+     *
+     * @return il contenitore radice della schermata
+     */
     private VBox costruisciVista() {
         VBox contenitore = new VBox(30);
         contenitore.setAlignment(Pos.CENTER);
@@ -71,16 +88,18 @@ public class StartController {
         return contenitore;
     }
 
+    /** Naviga alla schermata di login. */
     public void onLoginCliccato() {
         gestoreScene.vaiALogin();
     }
 
+    /** Naviga alla schermata di registrazione. */
     public void onRegistratiCliccato() {
         gestoreScene.vaiARegistrazione();
     }
 
+    /** Entra in modalità Guest (nessun utente autenticato) caricando la dashboard. */
     public void onContinuaComeGuestCliccato() {
-        // Modalità Guest: nessun utente autenticato.
         gestoreScene.caricaLayoutEDashboard(null);
     }
 }

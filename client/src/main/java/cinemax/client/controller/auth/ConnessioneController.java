@@ -11,22 +11,22 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 
-/*
- Schermata di connessione al server, mostrata all'avvio del client prima dello Start.
- L'utente indica indirizzo IP e porta del server CineMax.
-
- A differenza del placeholder precedente, qui la connessione è REALE:
-   - si tenta FornitoreServizi.creaReale(ip, porta) verso il registry RMI;
-   - se riesce, si avvia il monitoraggio della connessione (StatoConnessione),
-     che registra il client presso il server (il server lo stampa a terminale)
-     e fa partire l'heartbeat periodico;
-   - il fornitore reale viene iniettato nel GestoreScene e si prosegue allo Start;
-   - se fallisce, si resta su questa schermata con un messaggio, mantenendo i campi.
-
- Il tentativo gira su un thread separato per non bloccare la UI: durante l'attesa
- il bottone è disabilitato e mostra "Connessione in corso...".
-
- Costruita interamente in codice Java (niente FXML), in linea con il resto della UI.
+/**
+ * Schermata di connessione al server, mostrata all'avvio del client prima dello Start.
+ * L'utente indica indirizzo IP e porta del server CineMax.
+ * <p>
+ * La connessione è reale: si tenta {@code FornitoreServizi.creaReale(ip, porta)} verso il
+ * registry RMI; se riesce si avvia il monitoraggio della connessione (StatoConnessione),
+ * si inietta il fornitore reale nel GestoreScene e si prosegue allo Start; se fallisce si
+ * resta su questa schermata con un messaggio, mantenendo i campi.
+ * <p>
+ * Il tentativo gira su un thread separato per non bloccare la UI: durante l'attesa il
+ * bottone è disabilitato e mostra "Connessione in corso...".
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class ConnessioneController {
 
@@ -38,15 +38,27 @@ public class ConnessioneController {
     private final Label labelErrore = new Label();
     private final Button btnConnetti = new Button("Connetti");
 
+    /**
+     * Costruisce la schermata di connessione.
+     *
+     * @param gestoreScene gestore di navigazione, in cui iniettare il fornitore reale
+     */
     public ConnessioneController(GestoreScene gestoreScene) {
         this.gestoreScene = gestoreScene;
         this.radice = costruisciVista();
     }
 
+    /** @return il nodo radice della schermata, da inserire nella Scene. */
     public VBox getRoot() {
         return radice;
     }
 
+    /**
+     * Costruisce la vista: campi indirizzo/porta (con valori di default per i test in
+     * locale), bottone Connetti e area errore.
+     *
+     * @return il contenitore radice della schermata
+     */
     private VBox costruisciVista() {
         VBox contenitore = new VBox(20);
         contenitore.setAlignment(Pos.CENTER);
@@ -82,6 +94,11 @@ public class ConnessioneController {
         return contenitore;
     }
 
+    /**
+     * Valida i campi, poi tenta la connessione al registry RMI su un thread separato per
+     * non bloccare la UI. In caso di successo avvia il monitoraggio, inietta il fornitore
+     * reale e prosegue allo Start; in caso di errore mostra un messaggio.
+     */
     private void onConnettiCliccato() {
         pulisciErrore();
 
@@ -140,7 +157,12 @@ public class ConnessioneController {
         tentativo.start();
     }
 
-    // Abilita/disabilita i controlli durante il tentativo di connessione.
+    /**
+     * Abilita o disabilita i controlli durante il tentativo di connessione, aggiornando
+     * il testo del bottone.
+     *
+     * @param inAttesa true durante il tentativo (controlli bloccati)
+     */
     private void impostaAttesa(boolean inAttesa) {
         btnConnetti.setDisable(inAttesa);
         campoIp.setDisable(inAttesa);
@@ -148,12 +170,18 @@ public class ConnessioneController {
         btnConnetti.setText(inAttesa ? "Connessione in corso..." : "Connetti");
     }
 
+    /**
+     * Mostra un messaggio d'errore sotto i campi.
+     *
+     * @param messaggio testo dell'errore da mostrare
+     */
     private void mostraErrore(String messaggio) {
         labelErrore.setText(messaggio);
         labelErrore.setManaged(true);
         labelErrore.setVisible(true);
     }
 
+    /** Nasconde e svuota il messaggio d'errore. */
     private void pulisciErrore() {
         labelErrore.setText("");
         labelErrore.setManaged(false);

@@ -17,6 +17,11 @@ import java.rmi.registry.Registry;
  * &Egrave; questo il punto in cui si collega l'applicazione agli stub RMI reali
  * esposti dal server. I controller dipendono solo dalle interfacce in
  * {@code cinemax.common.remote}, quindi non conoscono i dettagli del trasporto.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class FornitoreServizi {
 
@@ -29,12 +34,28 @@ public class FornitoreServizi {
     // fornitore reale.
     private final ServizioConnessione servizioConnessione;
 
+    /**
+     * Crea un fornitore con i tre servizi principali, senza servizio di connessione
+     * (usato dove il monitoraggio dell'heartbeat non serve).
+     *
+     * @param servizioAutenticazione stub del servizio di autenticazione
+     * @param servizioProiezioni     stub del servizio proiezioni
+     * @param servizioPrenotazioni   stub del servizio prenotazioni
+     */
     public FornitoreServizi(ServizioAutenticazione servizioAutenticazione,
                             ServizioProiezioni servizioProiezioni,
                             ServizioPrenotazioni servizioPrenotazioni) {
         this(servizioAutenticazione, servizioProiezioni, servizioPrenotazioni, null);
     }
 
+    /**
+     * Crea un fornitore completo, incluso il servizio di monitoraggio connessione.
+     *
+     * @param servizioAutenticazione stub del servizio di autenticazione
+     * @param servizioProiezioni     stub del servizio proiezioni
+     * @param servizioPrenotazioni   stub del servizio prenotazioni
+     * @param servizioConnessione    stub del servizio di connessione (può essere null)
+     */
     public FornitoreServizi(ServizioAutenticazione servizioAutenticazione,
                             ServizioProiezioni servizioProiezioni,
                             ServizioPrenotazioni servizioPrenotazioni,
@@ -67,14 +88,17 @@ public class FornitoreServizi {
                 (ServizioConnessione)    registry.lookup("ServizioConnessione"));
     }
 
+    /** @return stub del servizio di autenticazione (login, registrazione, modifica utente) */
     public ServizioAutenticazione getServizioAutenticazione() {
         return servizioAutenticazione;
     }
 
+    /** @return stub del servizio di gestione proiezioni e film */
     public ServizioProiezioni getServizioProiezioni() {
         return servizioProiezioni;
     }
 
+    /** @return stub del servizio di gestione prenotazioni */
     public ServizioPrenotazioni getServizioPrenotazioni() {
         return servizioPrenotazioni;
     }

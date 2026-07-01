@@ -11,12 +11,17 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-/*
- Schermata "Impostazioni" comune a tutti i ruoli, costruita interamente in codice Java.
-
- Per ora espone una sola opzione: il numero di risultati per pagina, letto e salvato
- nell'oggetto Impostazioni condiviso tenuto dal GestoreScene (così la modifica vale per
- tutta la sessione). La struttura è pensata per accogliere altre opzioni in futuro.
+/**
+ * Schermata "Impostazioni" comune a tutti i ruoli, costruita interamente in codice Java.
+ * <p>
+ * Per ora espone una sola opzione: il numero di risultati per pagina, letto e salvato
+ * nell'oggetto Impostazioni condiviso tenuto dal GestoreScene (così la modifica vale per
+ * tutta la sessione). La struttura è pensata per accogliere altre opzioni in futuro.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class ImpostazioniController extends DashboardBaseController {
 
@@ -26,15 +31,28 @@ public class ImpostazioniController extends DashboardBaseController {
     private final TextField campoRisultatiPerPagina = new TextField();
     private final Label labelMessaggio = new Label();
 
+    /**
+     * Costruisce il controller per le impostazioni utente.
+     *
+     * @param gestoreScene Il gestore delle scene per l'accesso ai servizi e ai modelli.
+     */
     public ImpostazioniController(GestoreScene gestoreScene) {
         this.gestoreScene = gestoreScene;
     }
 
+    /**
+     * Restituisce il nodo radice dell'interfaccia grafica.
+     *
+     * @return Il Parent radice.
+     */
     @Override
     public Parent getRoot() {
         return radice;
     }
 
+    /**
+     * Inizializza l'interfaccia visiva del pannello delle impostazioni.
+     */
     @Override
     public void inizializza() {
         radice.setPadding(new Insets(20));
@@ -70,6 +88,9 @@ public class ImpostazioniController extends DashboardBaseController {
         aggiornaDati();
     }
 
+    /**
+     * Legge le impostazioni correnti per aggiornare i campi dell'interfaccia.
+     */
     @Override
     public void aggiornaDati() {
         Impostazioni imp = gestoreScene.getImpostazioni();
@@ -77,6 +98,9 @@ public class ImpostazioniController extends DashboardBaseController {
         pulisciMessaggio();
     }
 
+    /**
+     * Salva le modifiche inserite dall'utente se rispettano i criteri di validazione.
+     */
     private void salva() {
         pulisciMessaggio();
         try {
@@ -92,6 +116,11 @@ public class ImpostazioniController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Visualizza un messaggio di errore nell'interfaccia.
+     *
+     * @param messaggio Il testo dell'errore.
+     */
     private void mostraErrore(String messaggio) {
         labelMessaggio.getStyleClass().setAll("campo-errore");
         labelMessaggio.setText(messaggio);
@@ -99,6 +128,11 @@ public class ImpostazioniController extends DashboardBaseController {
         labelMessaggio.setVisible(true);
     }
 
+    /**
+     * Visualizza un messaggio di successo nell'interfaccia.
+     *
+     * @param messaggio Il testo del successo.
+     */
     private void mostraSuccesso(String messaggio) {
         labelMessaggio.getStyleClass().setAll("testo-secondario");
         labelMessaggio.setText(messaggio);
@@ -106,6 +140,9 @@ public class ImpostazioniController extends DashboardBaseController {
         labelMessaggio.setVisible(true);
     }
 
+    /**
+     * Rimuove messaggi di avviso attivi dallo schermo.
+     */
     private void pulisciMessaggio() {
         labelMessaggio.setText("");
         labelMessaggio.setManaged(false);

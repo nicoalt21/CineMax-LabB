@@ -18,6 +18,11 @@ import java.time.Period;
  *   12..17 arancione
  *   &ge; 18  rosso
  * </pre>
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public final class FasciaEta {
 

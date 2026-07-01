@@ -10,8 +10,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
+/**
+ * Applicazione JavaFX del client: carica i font, imposta l'icona e il titolo della
+ * finestra e avvia il {@link GestoreScene}. La connessione al server non viene tentata
+ * qui ma dalla schermata di connessione, così l'avvio non fallisce se il server è spento.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
+ */
 public class ClientApplication extends Application {
 
+    /** Carica i font dell'applicazione prima dell'avvio dell'interfaccia. */
     @Override
     public void init() {
         caricaFont(
@@ -25,6 +36,12 @@ public class ClientApplication extends Application {
         );
     }
 
+    /**
+     * Carica nel sistema i font indicati, prelevandoli dalle risorse del classpath.
+     * I font mancanti vengono segnalati su stderr senza interrompere l'avvio.
+     *
+     * @param percorsi percorsi delle risorse font da caricare
+     */
     private void caricaFont(String... percorsi) {
         for (String percorso : percorsi) {
             try (InputStream is = getClass().getResourceAsStream(percorso)) {
@@ -39,6 +56,12 @@ public class ClientApplication extends Application {
         }
     }
 
+    /**
+     * Configura la finestra principale (icona, titolo, dimensioni minime) e avvia il
+     * gestore delle scene, poi mostra lo stage.
+     *
+     * @param primaryStage finestra principale fornita da JavaFX
+     */
     @Override
     public void start(Stage primaryStage) {
         try {
@@ -71,6 +94,10 @@ public class ClientApplication extends Application {
         }
     }
 
+    /**
+     * Alla chiusura della finestra notifica al server la disconnessione e ferma
+     * l'heartbeat (best-effort, non blocca la chiusura).
+     */
     @Override
     public void stop() {
         // Alla chiusura della finestra: notifica al server la disconnessione e

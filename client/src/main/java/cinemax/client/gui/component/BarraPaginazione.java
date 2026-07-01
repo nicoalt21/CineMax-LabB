@@ -8,23 +8,28 @@ import javafx.scene.layout.HBox;
 
 import java.util.function.IntConsumer;
 
-/*
- Barra di paginazione riutilizzabile, costruita interamente in codice Java.
-
- Mostra i numeri di pagina nella forma:
-     1 ... Corr-1 Corr Corr+1 ... Ultima
- con queste regole (come da specifiche del progetto):
-   - se Corr-1 coincide con 1, non si mostrano "..." e Corr-1: resta solo "1";
-   - se Corr+1 coincide con l'ultima, non si mostrano Corr+1 e "...": resta solo l'ultima;
-   - "1" e l'ultima pagina sono sempre visibili (salvo coincidere con i vicini).
-
- La pagina corrente, al centro, è cliccabile: diventa un campo di testo inline in cui
- l'utente scrive il numero a cui saltare (Invio conferma, Esc annulla). I "..." sono
- cliccabili e aprono lo stesso campo, come scorciatoia per il salto.
-
- Il cambio pagina viene notificato al controller tramite il listener registrato con
- setListenerCambioPagina(...); la barra non conosce i dati, si limita a dire "vai alla
- pagina N".
+/**
+ * Barra di paginazione riutilizzabile, costruita interamente in codice Java.
+ * <p>
+ * Mostra i numeri di pagina nella forma {@code 1 ... Corr-1 Corr Corr+1 ... Ultima}
+ * con queste regole (come da specifiche del progetto):
+ * <ul>
+ *   <li>se Corr-1 coincide con 1, non si mostrano "..." e Corr-1: resta solo "1";</li>
+ *   <li>se Corr+1 coincide con l'ultima, non si mostrano Corr+1 e "...": resta solo l'ultima;</li>
+ *   <li>"1" e l'ultima pagina sono sempre visibili (salvo coincidere con i vicini).</li>
+ * </ul>
+ * La pagina corrente, al centro, è cliccabile: diventa un campo di testo inline in cui
+ * l'utente scrive il numero a cui saltare (Invio conferma, Esc annulla). I "..." sono
+ * cliccabili e aprono lo stesso campo, come scorciatoia per il salto.
+ * <p>
+ * Il cambio pagina viene notificato al controller tramite il listener registrato con
+ * {@link #setListenerCambioPagina(IntConsumer)}; la barra non conosce i dati, si limita a
+ * dire "vai alla pagina N".
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class BarraPaginazione extends HBox {
 
@@ -34,20 +39,28 @@ public class BarraPaginazione extends HBox {
     // Notifica al controller la pagina scelta (1-based).
     private IntConsumer listenerCambioPagina;
 
+    /** Costruisce una barra di paginazione vuota, centrata, con lo stile del tema. */
     public BarraPaginazione() {
         super(6);
         setAlignment(Pos.CENTER);
         getStyleClass().add("barra-paginazione");
     }
 
-    // Registra il listener chiamato quando l'utente sceglie una nuova pagina.
+    /**
+     * Registra il listener chiamato quando l'utente sceglie una nuova pagina.
+     *
+     * @param listener callback che riceve il numero di pagina scelto (1-based)
+     */
     public void setListenerCambioPagina(IntConsumer listener) {
         this.listenerCambioPagina = listener;
     }
 
-    /*
-     Aggiorna la barra con la pagina corrente e il numero totale di pagine, poi
-     ricostruisce i pulsanti. Con una sola pagina la barra resta vuota (nascosta).
+    /**
+     * Aggiorna la barra con la pagina corrente e il numero totale di pagine, poi
+     * ricostruisce i pulsanti. Con una sola pagina la barra resta vuota (nascosta).
+     *
+     * @param paginaCorrente pagina attualmente visualizzata (1-based)
+     * @param numeroPagine   numero totale di pagine
      */
     public void aggiorna(int paginaCorrente, int numeroPagine) {
         this.paginaCorrente = paginaCorrente;
@@ -55,6 +68,7 @@ public class BarraPaginazione extends HBox {
         ricostruisci();
     }
 
+    /** Ricostruisce i pulsanti della barra in base a pagina corrente e totale. */
     private void ricostruisci() {
         getChildren().clear();
 
@@ -101,7 +115,12 @@ public class BarraPaginazione extends HBox {
         }
     }
 
-    // Bottone di una pagina specifica. La pagina corrente è evidenziata.
+    /**
+     * Crea il bottone di una pagina specifica; la pagina corrente viene evidenziata.
+     *
+     * @param pagina numero di pagina che il bottone rappresenta
+     * @return il bottone configurato con l'azione di navigazione
+     */
     private Button bottonePagina(int pagina) {
         Button b = new Button(String.valueOf(pagina));
         b.getStyleClass().add("bottone-pagina");
@@ -112,7 +131,11 @@ public class BarraPaginazione extends HBox {
         return b;
     }
 
-    // L'etichetta della pagina corrente: cliccandola diventa un campo per saltare.
+    /**
+     * Crea l'etichetta della pagina corrente: cliccandola si trasforma nel campo di salto.
+     *
+     * @return il bottone della pagina corrente
+     */
     private Button etichettaCorrente() {
         Button b = new Button(String.valueOf(paginaCorrente));
         b.getStyleClass().addAll("bottone-pagina", "bottone-pagina-attiva");
@@ -120,7 +143,11 @@ public class BarraPaginazione extends HBox {
         return b;
     }
 
-    // I "...": cliccabili, aprono il campo di salto (scorciatoia).
+    /**
+     * Crea un elemento "..." cliccabile che apre il campo di salto come scorciatoia.
+     *
+     * @return la label dei puntini di sospensione
+     */
     private Label puntini() {
         Label l = new Label("...");
         l.getStyleClass().add("puntini-pagina");
@@ -128,7 +155,11 @@ public class BarraPaginazione extends HBox {
         return l;
     }
 
-    // Sostituisce un nodo con un campo di testo per inserire la pagina di destinazione.
+    /**
+     * Sostituisce un bottone con un campo di testo per inserire la pagina di destinazione.
+     *
+     * @param origine il bottone da sostituire col campo di salto
+     */
     private void apriCampoSalto(Button origine) {
         int indice = getChildren().indexOf(origine);
         if (indice < 0) {
@@ -139,6 +170,11 @@ public class BarraPaginazione extends HBox {
         campo.requestFocus();
     }
 
+    /**
+     * Variante di {@link #apriCampoSalto(Button)} che parte da un elemento "...".
+     *
+     * @param origine la label dei puntini da sostituire col campo di salto
+     */
     private void apriCampoSaltoDaPuntini(Label origine) {
         int indice = getChildren().indexOf(origine);
         if (indice < 0) {
@@ -149,7 +185,11 @@ public class BarraPaginazione extends HBox {
         campo.requestFocus();
     }
 
-    // Crea il campo di salto: Invio conferma il numero, Esc o perdita di focus annulla.
+    /**
+     * Crea il campo di salto: Invio conferma il numero, Esc o perdita di focus annullano.
+     *
+     * @return il campo di testo per l'inserimento della pagina
+     */
     private TextField campoSalto() {
         TextField campo = new TextField(String.valueOf(paginaCorrente));
         campo.getStyleClass().add("campo-salto-pagina");
@@ -168,7 +208,12 @@ public class BarraPaginazione extends HBox {
         return campo;
     }
 
-    // Valida il numero inserito e, se valido, salta alla pagina.
+    /**
+     * Valida il numero inserito nel campo di salto e, se valido e in range, salta alla
+     * pagina; altrimenti ripristina la barra senza cambiare pagina.
+     *
+     * @param testo testo inserito dall'utente nel campo di salto
+     */
     private void confermaSalto(String testo) {
         try {
             int pagina = Integer.parseInt(testo.trim());
@@ -182,6 +227,11 @@ public class BarraPaginazione extends HBox {
         ricostruisci(); // numero fuori range o non valido: ripristina senza saltare
     }
 
+    /**
+     * Notifica al listener il passaggio alla pagina indicata (se diversa dalla corrente).
+     *
+     * @param pagina pagina di destinazione (1-based)
+     */
     private void vaiAPagina(int pagina) {
         if (pagina == paginaCorrente) {
             ricostruisci();

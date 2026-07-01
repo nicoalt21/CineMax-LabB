@@ -2,7 +2,7 @@ package cinemax.client.controller.cliente;
 
 import cinemax.client.controller.shared.BaseLayoutController;
 import cinemax.client.controller.shared.DashboardBaseController;
-import cinemax.client.gui.component.CardProiezione;
+import cinemax.client.gui.component.card.CardProiezione;
 import cinemax.client.gui.component.BarraPaginazione;
 import cinemax.client.gui.component.FilterBarComponent;
 import cinemax.client.gui.navigation.GestoreScene;
@@ -26,21 +26,28 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/*
- Dashboard del Cliente, riutilizzata anche per il Guest (utente non autenticato).
-
- Una sola classe serve entrambi i casi: la differenza tra Cliente e Guest NON è gestita
- qui dentro, ma dal BaseLayoutController. Questa dashboard costruisce le card e, per ogni
- azione riservata (il bottone "Prenota"), la registra presso il layout con
- registraNodoRiservato(...): sarà il layout ad attenuarla e bloccarla per il Guest.
-
- Funzionalità coperte (vedi specifiche, sezione Guest / Cliente):
-   - barra di ricerca proiezioni (titolo, genere, intervallo date, intervallo prezzo)
-   - elenco risultati come card
-   - apertura dettagli proiezione (login non necessario)
-   - prenotazione: visibile a tutti, ma cliccabile solo dai clienti registrati
-
- Costruita interamente in codice Java (niente FXML), in linea con il resto della UI.
+/**
+ * Dashboard del Cliente, riutilizzata anche per il Guest (utente non autenticato).
+ * <p>
+ * Una sola classe serve entrambi i casi: la differenza tra Cliente e Guest NON è gestita
+ * qui dentro, ma dal BaseLayoutController. Questa dashboard costruisce le card e, per ogni
+ * azione riservata (il bottone "Prenota"), la registra presso il layout con
+ * registraNodoRiservato(...): sarà il layout ad attenuarla e bloccarla per il Guest.
+ * <p>
+ * Funzionalità coperte (vedi specifiche, sezione Guest / Cliente):
+ * <ul>
+ * <li>barra di ricerca proiezioni (titolo, genere, intervallo date, intervallo prezzo)</li>
+ * <li>elenco risultati come card</li>
+ * <li>apertura dettagli proiezione (login non necessario)</li>
+ * <li>prenotazione: visibile a tutti, ma cliccabile solo dai clienti registrati</li>
+ * </ul>
+ * <p>
+ * Costruita interamente in codice Java (niente FXML), in linea con il resto della UI.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class DashboardClienteController extends DashboardBaseController {
 
@@ -68,6 +75,13 @@ public class DashboardClienteController extends DashboardBaseController {
     // Titolo eventualmente indicato dall'utente Guest nel menu iniziale (puo' essere null).
     private final String titoloInizialeGuest;
 
+    /**
+     * Costruisce il controller per la dashboard di esplorazione e ricerca.
+     *
+     * @param gestoreScene Il gestore delle scene per l'accesso ai servizi.
+     * @param layout Il layout di base padre che ospita la dashboard.
+     * @param titoloInizialeGuest Il titolo ricercato se la vista è chiamata dopo registrazione.
+     */
     public DashboardClienteController(GestoreScene gestoreScene,
                                       BaseLayoutController layout,
                                       String titoloInizialeGuest) {
@@ -76,11 +90,19 @@ public class DashboardClienteController extends DashboardBaseController {
         this.titoloInizialeGuest = titoloInizialeGuest;
     }
 
+    /**
+     * Restituisce il nodo radice dell'interfaccia.
+     *
+     * @return Il Parent radice.
+     */
     @Override
     public Parent getRoot() {
         return radice;
     }
 
+    /**
+     * Inizializza l'interfaccia visiva e la barra degli strumenti di ricerca.
+     */
     @Override
     public void inizializza() {
         radice.setPadding(new Insets(16));
@@ -131,6 +153,9 @@ public class DashboardClienteController extends DashboardBaseController {
         aggiornaDati();
     }
 
+    /**
+     * Esegue una ricerca iniziale in base allo stato o al titolo di partenza fornito.
+     */
     @Override
     public void aggiornaDati() {
         if (titoloInizialeGuest != null && !titoloInizialeGuest.isBlank()) {
@@ -145,7 +170,9 @@ public class DashboardClienteController extends DashboardBaseController {
         }
     }
 
-    // Caricamento dell'elenco di partenza (senza filtri specifici).
+    /**
+     * Esegue la chiamata al server per una ricerca standard (proiezioni da oggi in poi).
+     */
     private void caricaProiezioniIniziali() {
         // Criteri "vuoti" ma limitati alle proiezioni da oggi in poi.
         CriteriRicercaProiezione criteri = new CriteriRicercaProiezione();
@@ -153,7 +180,11 @@ public class DashboardClienteController extends DashboardBaseController {
         eseguiRicerca(criteri);
     }
 
-    // Invocata dalla barra filtri quando l'utente preme "Cerca".
+    /**
+     * Interroga il server usando i criteri specificati.
+     *
+     * @param criteri I filtri in base ai quali recuperare le proiezioni.
+     */
     private void eseguiRicerca(CriteriRicercaProiezione criteri) {
         labelStato.setText("Ricerca in corso...");
 
@@ -182,8 +213,9 @@ public class DashboardClienteController extends DashboardBaseController {
         }
     }
 
-    // Costruisce la riga di bottoni per ordinare i risultati. Ogni bottone ripreme:
-    // primo click ordina crescente, secondo click inverte in decrescente.
+    /**
+     * Costruisce la riga di bottoni per ordinare i risultati in locale.
+     */
     private void costruisciBarraOrdinamento() {
         barraOrdinamento.setAlignment(Pos.CENTER_LEFT);
         Label etichetta = new Label("Ordina per:");
@@ -201,8 +233,13 @@ public class DashboardClienteController extends DashboardBaseController {
         barraOrdinamento.getChildren().addAll(etichetta, perNome, perData, perPosti, perCosto);
     }
 
-    // Crea un bottone di ordinamento. Cliccandolo si applica il comparatore; se era già
-    // attivo, si inverte il verso (crescente <-> decrescente).
+    /**
+     * Crea un singolo bottone d'ordinamento.
+     *
+     * @param testo Il testo del bottone.
+     * @param comparatore Il comparator usato per riordinare la lista locale.
+     * @return L'istanza del Button creato.
+     */
     private Button bottoneOrdinamento(String testo, Comparator<Proiezione> comparatore) {
         Button b = new Button(testo);
         b.getStyleClass().add("bottone-ordinamento");
@@ -233,8 +270,9 @@ public class DashboardClienteController extends DashboardBaseController {
         return b;
     }
 
-    // Applica l'ordinamento all'ultima lista e torna alla prima pagina. Il rendering
-    // effettivo delle card avviene in renderPagina().
+    /**
+     * Applica l'ordinamento (se presente) e resetta la visualizzazione alla prima pagina.
+     */
     private void mostraRisultati() {
         if (ultimiRisultati == null || ultimiRisultati.isEmpty()) {
             mostraStatoVuoto("Nessuna proiezione trovata",
@@ -257,7 +295,9 @@ public class DashboardClienteController extends DashboardBaseController {
         renderPagina();
     }
 
-    // Mostra le card della sola pagina corrente e aggiorna la barra di paginazione.
+    /**
+     * Disegna le card relative alla pagina corrente calcolata per la paginazione.
+     */
     private void renderPagina() {
         contenitoreRisultati.getChildren().clear();
 
@@ -328,20 +368,21 @@ public class DashboardClienteController extends DashboardBaseController {
         barraPaginazione.aggiorna(paginaCorrente, numeroPagine);
     }
 
-    // Apertura della schermata di dettaglio di una proiezione (login non necessario).
+    /**
+     * Mostra l'overlay laterale delegando la chiamata al Layout.
+     *
+     * @param p La proiezione da visualizzare.
+     */
     private void mostraDettagliProiezione(Proiezione p) {
-        // Apre il pannello laterale destro dei dettagli, ospitato dal layout. E' consentito
-        // anche al Guest (sola consultazione): il bottone "Prenota" interno al pannello
-        // applica da se' i blocchi per Guest, eta' minima e proiezioni passate/esaurite.
         layout.mostraDettagliProiezione(p);
     }
 
-    /*
-     Mostra uno stato vuoto al posto dell'elenco delle card: un riquadro centrato con
-     un'icona discreta, un titolo e un sottotitolo esplicativo. Usato quando una ricerca
-     non produce risultati oppure quando il server non e' raggiungibile, cosi' l'area
-     risultati non resta semplicemente bianca senza spiegazione.
-    */
+    /**
+     * Mostra uno stato vuoto esplicativo nell'area centrale.
+     *
+     * @param titolo Il titolo del messaggio.
+     * @param sottotitolo Il sottotitolo esplicativo.
+     */
     private void mostraStatoVuoto(String titolo, String sottotitolo) {
         contenitoreRisultati.getChildren().clear();
 
@@ -365,24 +406,29 @@ public class DashboardClienteController extends DashboardBaseController {
         contenitoreRisultati.getChildren().add(box);
     }
 
-    // Avvio del flusso di prenotazione (solo clienti registrati; per il Guest il bottone
-    // è bloccato dal layout, quindi questo metodo non viene raggiunto da un Guest).
+    /**
+     * Invia l'utente verso la schermata di prenotazione per la data proiezione.
+     *
+     * @param p La proiezione scelta.
+     */
     private void avviaPrenotazione(Proiezione p) {
-        // Apre la schermata di inserimento prenotazione per la proiezione scelta.
-        // La creazione vera e propria (creaPrenotazione) avviene in quella schermata.
         layout.mostraPrenotazione(p);
     }
 
-    // Avvio del flusso di modifica (solo proiezionista). Apre la schermata di modifica
-    // della proiezione, che rispetta i vincoli di integrità lato server.
+    /**
+     * Invia l'utente proiezionista verso l'editor di modifica della proiezione.
+     *
+     * @param p La proiezione scelta per la modifica.
+     */
     private void avviaModifica(Proiezione p) {
         layout.mostraModificaProiezione(p);
     }
 
-    /*
-     Eliminazione di una proiezione (solo proiezionista). Chiede conferma in-app, perche'
-     e' un'azione distruttiva, e solo dopo procede.
-    */
+    /**
+     * Inizia l'azione distruttiva di eliminazione interpellando l'utente.
+     *
+     * @param p La proiezione da eliminare.
+     */
     private void gestisciEliminazione(Proiezione p) {
         String titolo = p.getFilm().getTitolo();
         layout.mostraConferma(
@@ -390,13 +436,11 @@ public class DashboardClienteController extends DashboardBaseController {
                 () -> eseguiEliminazione(p));
     }
 
-    /*
-     Esegue l'eliminazione sul server. Tre esiti:
-       - true:  proiezione eliminata, ricarico l'elenco (la card sparisce da sola);
-       - false: il server ha rifiutato perche' esistono prenotazioni per quella
-                proiezione, lo spiego con un avviso;
-       - RemoteException: server non raggiungibile.
-    */
+    /**
+     * Invia la direttiva di eliminazione al server remoto.
+     *
+     * @param p La proiezione da rimuovere.
+     */
     private void eseguiEliminazione(Proiezione p) {
         try {
             boolean eliminata = gestoreScene.getFornitoreServizi()

@@ -30,14 +30,19 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-/*
- Schermata "Modifica proiezione" del proiezionista, gemella di CreaProiezioneController ma
- con i campi precompilati dai valori attuali. Il calcolo delle finestre libere esclude la
- proiezione in modifica (cosi il suo slot resta selezionabile) e la conferma invoca
- ServizioProiezioni.modificaProiezione(dataOraAttuale, idFilm, nuovaDataOra, costo).
-
- Vincoli (verificati dal server, anticipati qui dove possibile): una proiezione con
- prenotazioni non e modificabile; la nuova collocazione non deve sovrapporsi ad altre.
+/**
+ * Schermata "Modifica proiezione" del proiezionista, gemella di CreaProiezioneController ma
+ * con i campi precompilati dai valori attuali. Il calcolo delle finestre libere esclude la
+ * proiezione in modifica (così il suo slot resta selezionabile) e la conferma invoca
+ * ServizioProiezioni.modificaProiezione(dataOraAttuale, idFilm, nuovaDataOra, costo).
+ * <p>
+ * Vincoli (verificati dal server, anticipati qui dove possibile): una proiezione con
+ * prenotazioni non è modificabile; la nuova collocazione non deve sovrapporsi ad altre.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class ModificaProiezioneController extends DashboardBaseController {
 
@@ -76,6 +81,13 @@ public class ModificaProiezioneController extends DashboardBaseController {
     private Film filmRiconosciuto = null;
     private boolean aggiornamentoInterno = false;
 
+    /**
+     * Costruisce il controller per manipolare una proiezione.
+     *
+     * @param gestoreScene Il gestore delle scene per l'accesso ai servizi.
+     * @param layout Il layout contenitore di riferimento.
+     * @param proiezione La proiezione che sta per essere modificata.
+     */
     public ModificaProiezioneController(GestoreScene gestoreScene,
                                         BaseLayoutController layout,
                                         Proiezione proiezione) {
@@ -85,17 +97,31 @@ public class ModificaProiezioneController extends DashboardBaseController {
         this.dataOraAttuale = proiezione.getDataOra();
     }
 
+    /**
+     * Crea e restituisce un nuovo TextField preimpostato.
+     *
+     * @param prompt Il suggerimento visibile quando il campo è vuoto.
+     * @return Il TextField configurato.
+     */
     private static TextField nuovoTextField(String prompt) {
         TextField tf = new TextField();
         tf.setPromptText(prompt);
         return tf;
     }
 
+    /**
+     * Restituisce la radice dell'interfaccia visibile.
+     *
+     * @return Il Parent radice.
+     */
     @Override
     public Parent getRoot() {
         return radice;
     }
 
+    /**
+     * Inizializza l'interfaccia precompilandola con i dati della proiezione.
+     */
     @Override
     public void inizializza() {
         radice.setPadding(new Insets(20));
@@ -128,7 +154,7 @@ public class ModificaProiezioneController extends DashboardBaseController {
         Button btnIndietro = new Button("Annulla");
         btnIndietro.setMaxWidth(LARGHEZZA_GRIGLIA);
         btnIndietro.getStyleClass().add("bottone-secondario");
-        btnIndietro.setOnAction(e -> layout.mostraDashboardRicercaPubblica());
+        btnIndietro.setOnAction(e -> layout.mostraDashboardRicerca());
 
         modulo.getChildren().addAll(
                 costruisciGriglia(),
@@ -151,12 +177,17 @@ public class ModificaProiezioneController extends DashboardBaseController {
         precompilaConValoriAttuali();
     }
 
+    /**
+     * Ripristina i controlli del modulo ricaricando le dipendenze e i valori iniziali.
+     */
     @Override
     public void aggiornaDati() {
         precompilaConValoriAttuali();
     }
 
-    // Riempie i campi con i dati attuali della proiezione e calcola le finestre disponibili.
+    /**
+     * Riempie i campi con i dati attuali della proiezione e calcola le finestre disponibili.
+     */
     private void precompilaConValoriAttuali() {
         aggiornamentoInterno = true;
 
@@ -179,6 +210,9 @@ public class ModificaProiezioneController extends DashboardBaseController {
         aggiornaFinestreLibere(dataOraAttuale.toLocalTime());
     }
 
+    /**
+     * Configura il selettore del film.
+     */
     private void configuraSelettoreTitolo() {
         selettoreTitolo.setEditable(true);
         selettoreTitolo.setMaxWidth(Double.MAX_VALUE);
@@ -241,6 +275,9 @@ public class ModificaProiezioneController extends DashboardBaseController {
         });
     }
 
+    /**
+     * Carica dal servizio tutti i film disponibili per compilare la lista.
+     */
     private void caricaSuggerimenti() {
         try {
             List<Film> tutti = gestoreScene.getFornitoreServizi()
@@ -251,6 +288,9 @@ public class ModificaProiezioneController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Applica un vincolo sul formato del campo numerico (costo in valuta).
+     */
     private void configuraCampoCosto() {
         TextField tf = (TextField) campoCosto.getControllo();
         TextFormatter<String> formatter = new TextFormatter<>(change -> {
@@ -266,6 +306,9 @@ public class ModificaProiezioneController extends DashboardBaseController {
         tf.setTextFormatter(formatter);
     }
 
+    /**
+     * Configura il selettore che visualizzerà solo gli slot orari calcolati.
+     */
     private void configuraSelettoreOra() {
         selettoreOra.setMaxWidth(Double.MAX_VALUE);
         selettoreOra.setVisibleRowCount(8);
@@ -284,6 +327,9 @@ public class ModificaProiezioneController extends DashboardBaseController {
         selettoreOra.setDisable(true);
     }
 
+    /**
+     * Aggiunge il listener per calcolare al volo le finestre su ogni modifica della data.
+     */
     private void configuraDatePicker() {
         DatePicker dp = (DatePicker) campoData.getControllo();
         dp.valueProperty().addListener((obs, vecchia, nuova) -> {
@@ -293,6 +339,11 @@ public class ModificaProiezioneController extends DashboardBaseController {
         });
     }
 
+    /**
+     * Dispone i campi testuali su una griglia a due colonne.
+     *
+     * @return Il GridPane configurato.
+     */
     private GridPane costruisciGriglia() {
         GridPane griglia = new GridPane();
         griglia.setAlignment(Pos.CENTER);
@@ -312,6 +363,12 @@ public class ModificaProiezioneController extends DashboardBaseController {
         return griglia;
     }
 
+    /**
+     * Normalizza la stringa riducendo spaziature e trasformando in caratteri minuscoli.
+     *
+     * @param s Il testo grezzo.
+     * @return Il testo ripulito.
+     */
     private String normalizza(String s) {
         if (s == null) {
             return "";
@@ -319,6 +376,11 @@ public class ModificaProiezioneController extends DashboardBaseController {
         return s.trim().toLowerCase().replaceAll("\\s+", " ");
     }
 
+    /**
+     * Verifica la correttezza del titolo confrontandolo col DB simulato.
+     *
+     * @param testo Il testo immesso dall'utente.
+     */
     private void verificaTitolo(String testo) {
         Film precedente = filmRiconosciuto;
         filmRiconosciuto = null;
@@ -356,11 +418,13 @@ public class ModificaProiezioneController extends DashboardBaseController {
         aggiornaFinestreLibere(null);
     }
 
-    /*
-     Ricalcola le finestre libere per il film e la data scelti, ESCLUDENDO la proiezione in
-     modifica (così il suo slot resta selezionabile). Se oraDaPreselezionare non è null e
-     rientra tra le finestre, viene preselezionata; altrimenti si tenta di mantenere quella
-     già scelta.
+    /**
+     * Ricalcola le finestre libere per il film e la data scelti, ESCLUDENDO la proiezione in
+     * modifica (così il suo slot resta selezionabile). Se oraDaPreselezionare non è null e
+     * rientra tra le finestre, viene preselezionata; altrimenti si tenta di mantenere quella
+     * già scelta.
+     *
+     * @param oraDaPreselezionare Slot orario raccomandato per la priorità (può essere null).
      */
     private void aggiornaFinestreLibere(LocalTime oraDaPreselezionare) {
         LocalDate data = ((DatePicker) campoData.getControllo()).getValue();
@@ -399,6 +463,9 @@ public class ModificaProiezioneController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Raccoglie i dati aggiornati, li valida e invia la richiesta di modifica.
+     */
     private void salva() {
         pulisciMessaggio();
         campoCosto.pulisciErrore();
@@ -453,7 +520,7 @@ public class ModificaProiezioneController extends DashboardBaseController {
                 layout.mostraScelta(
                         "Proiezione modificata con successo.",
                         "Torna alla lista", "Resta qui",
-                        layout::mostraDashboardRicercaPubblica,
+                        layout::mostraDashboardRicerca,
                         null);
             } else {
                 // Il server rifiuta se: la proiezione ha prenotazioni, oppure la nuova
@@ -468,8 +535,10 @@ public class ModificaProiezioneController extends DashboardBaseController {
         }
     }
 
-    // Se la proiezione risulta già prenotata (posti liberi < capienza), avvisa subito che
-    // non sarà modificabile: il server rifiuterà comunque, ma è meglio dirlo prima.
+    /**
+     * Se la proiezione risulta già prenotata (posti liberi < capienza), avvisa subito che
+     * non sarà modificabile: il server rifiuterà comunque, ma è meglio dirlo prima.
+     */
     private void avvisaSePrenotata() {
         int postiLiberi = proiezioneOriginale.getPostiLiberi();
         if (postiLiberi < CAPIENZA_SALA) {
@@ -479,6 +548,11 @@ public class ModificaProiezioneController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Estrae il costo dal controllo grafico.
+     *
+     * @return Costo in decimale.
+     */
     private Double leggiCosto() {
         String testo = ((TextField) campoCosto.getControllo()).getText();
         if (testo == null || testo.isBlank()) {
@@ -492,6 +566,9 @@ public class ModificaProiezioneController extends DashboardBaseController {
         }
     }
 
+    /**
+     * Ripulisce lo stile di errore visivo da tutti i campi del modulo.
+     */
     private void pulisciErroriCampi() {
         campoTitolo.pulisciErrore();
         campoCosto.pulisciErrore();
@@ -499,6 +576,11 @@ public class ModificaProiezioneController extends DashboardBaseController {
         campoOra.pulisciErrore();
     }
 
+    /**
+     * Visualizza un messaggio di errore nell'apposita etichetta.
+     *
+     * @param messaggio Il testo dell'errore.
+     */
     private void mostraErrore(String messaggio) {
         labelMessaggio.getStyleClass().setAll("errore-generale");
         labelMessaggio.setText(messaggio);
@@ -506,6 +588,9 @@ public class ModificaProiezioneController extends DashboardBaseController {
         labelMessaggio.setVisible(true);
     }
 
+    /**
+     * Rimuove messaggi di errore visualizzati.
+     */
     private void pulisciMessaggio() {
         labelMessaggio.setText("");
         labelMessaggio.setManaged(false);

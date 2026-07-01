@@ -2,7 +2,7 @@ package cinemax.client.controller.cliente;
 
 import cinemax.client.controller.shared.BaseLayoutController;
 import cinemax.client.controller.shared.DashboardBaseController;
-import cinemax.client.gui.component.CardProiezione;
+import cinemax.client.gui.component.card.CardProiezione;
 import cinemax.client.gui.navigation.GestoreScene;
 import cinemax.common.model.CriteriRicercaProiezione;
 import cinemax.common.model.Prenotazione;
@@ -25,21 +25,26 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-/*
- Schermata di modifica (spostamento) di una prenotazione, caricata nell'area centrale del
- BaseLayoutController come le altre dashboard del Cliente.
-
- Il cliente sposta una prenotazione esistente su un'altra proiezione DELLO STESSO FILM. Il
- numero di biglietti non cambia (il server sposta la prenotazione cosi' com'e'), quindi
- mostriamo solo le proiezioni alternative che hanno posti liberi sufficienti per gli stessi
- biglietti, future e diverse da quella attuale.
-
- In alto un riepilogo della prenotazione corrente; sotto, l'elenco delle proiezioni
- candidate come card cliccabili. Al click su una card si chiede conferma e si invoca
- modificaPrenotazione(codice, nuovaDataOra). Esiti gestiti: spostata (torna a "Le mie
- prenotazioni"), rifiutata dal server (messaggio), server irraggiungibile.
-
- Costruita interamente in codice Java (niente FXML), in linea con il resto della UI.
+/**
+ * Schermata di modifica (spostamento) di una prenotazione, caricata nell'area centrale del
+ * BaseLayoutController come le altre dashboard del Cliente.
+ * <p>
+ * Il cliente sposta una prenotazione esistente su un'altra proiezione DELLO STESSO FILM. Il
+ * numero di biglietti non cambia (il server sposta la prenotazione cosi' com'e'), quindi
+ * mostriamo solo le proiezioni alternative che hanno posti liberi sufficienti per gli stessi
+ * biglietti, future e diverse da quella attuale.
+ * <p>
+ * In alto un riepilogo della prenotazione corrente; sotto, l'elenco delle proiezioni
+ * candidate come card cliccabili. Al click su una card si chiede conferma e si invoca
+ * modificaPrenotazione(codice, nuovaDataOra). Esiti gestiti: spostata (torna a "Le mie
+ * prenotazioni"), rifiutata dal server (messaggio), server irraggiungibile.
+ * <p>
+ * Costruita interamente in codice Java (niente FXML), in linea con il resto della UI.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class ModificaPrenotazioneController extends DashboardBaseController {
 
@@ -56,6 +61,13 @@ public class ModificaPrenotazioneController extends DashboardBaseController {
     private final VBox contenitoreCandidate = new VBox(12);
     private final Label labelStato = new Label();
 
+    /**
+     * Costruisce il controller per la dashboard di modifica delle prenotazioni.
+     *
+     * @param gestoreScene Il gestore per navigare.
+     * @param layout Il layout contenitore di riferimento.
+     * @param prenotazione L'oggetto prenotazione che si intende variare.
+     */
     public ModificaPrenotazioneController(GestoreScene gestoreScene,
                                           BaseLayoutController layout,
                                           Prenotazione prenotazione) {
@@ -64,11 +76,19 @@ public class ModificaPrenotazioneController extends DashboardBaseController {
         this.prenotazione = prenotazione;
     }
 
+    /**
+     * Restituisce la radice.
+     *
+     * @return Il Parent radice.
+     */
     @Override
     public Parent getRoot() {
         return radice;
     }
 
+    /**
+     * Inizializza la UI popolando una card riepilogativa e offrendo opzioni alternative.
+     */
     @Override
     public void inizializza() {
         radice.setPadding(new Insets(16));
@@ -106,7 +126,7 @@ public class ModificaPrenotazioneController extends DashboardBaseController {
         // prenotazioni" senza modificare nulla.
         Button btnAnnulla = new Button("Annulla");
         btnAnnulla.getStyleClass().add("bottone-secondario");
-        btnAnnulla.setOnAction(e -> layout.mostraMiePrenotazioniPubblica());
+        btnAnnulla.setOnAction(e -> layout.mostraMiePrenotazioni());
         Region spazio = new Region();
         HBox.setHgrow(spazio, Priority.ALWAYS);
         HBox barraInferiore = new HBox(8, btnAnnulla, spazio);
@@ -118,6 +138,9 @@ public class ModificaPrenotazioneController extends DashboardBaseController {
         aggiornaDati();
     }
 
+    /**
+     * Carica dal server le altre proiezioni in modo da mostrarle come opzioni sostitutive.
+     */
     @Override
     public void aggiornaDati() {
         labelStato.setText("Caricamento proiezioni disponibili...");
@@ -141,11 +164,16 @@ public class ModificaPrenotazioneController extends DashboardBaseController {
         }
     }
 
-    /*
-     Tiene solo le proiezioni adatte come destinazione: stesso film (gia' filtrato dalla
-     ricerca per titolo, ma ricontrollo per sicurezza), future, diverse da quella attuale
-     e con posti liberi sufficienti per gli stessi biglietti.
-    */
+    /**
+     * Tiene solo le proiezioni adatte come destinazione: stesso film (gia' filtrato dalla
+     * ricerca per titolo, ma ricontrollo per sicurezza), future, diverse da quella attuale
+     * e con posti liberi sufficienti per gli stessi biglietti.
+     *
+     * @param trovate La lista restituita dal server.
+     * @param attuale La proiezione originale da sostituire.
+     * @param bigliettiNecessari Il numero di posti da allocare sulla nuova proiezione.
+     * @return Una lista di proiezioni idonee al transito.
+     */
     private List<Proiezione> filtraCandidate(List<Proiezione> trovate, Proiezione attuale,
                                              int bigliettiNecessari) {
         List<Proiezione> candidate = new ArrayList<>();
@@ -166,6 +194,11 @@ public class ModificaPrenotazioneController extends DashboardBaseController {
         return candidate;
     }
 
+    /**
+     * Popola la UI con le opzioni candidate ottenute dal filtraggio.
+     *
+     * @param candidate La lista di proiezioni idonee disponibili per lo spostamento.
+     */
     private void mostraCandidate(List<Proiezione> candidate) {
         contenitoreCandidate.getChildren().clear();
 
@@ -187,7 +220,11 @@ public class ModificaPrenotazioneController extends DashboardBaseController {
         }
     }
 
-    // Chiede conferma in-app riportando la nuova collocazione, poi sposta la prenotazione.
+    /**
+     * Richiede conferma visiva prima di inoltrare la modifica irreversibile al server.
+     *
+     * @param nuova La proiezione di destinazione desiderata.
+     */
     private void chiediConferma(Proiezione nuova) {
         String titolo = nuova.getFilm().getTitolo();
         String quando = nuova.getDataOra().format(FORMATO_DATA);
@@ -195,7 +232,11 @@ public class ModificaPrenotazioneController extends DashboardBaseController {
         layout.mostraConferma(messaggio, () -> eseguiSpostamento(nuova));
     }
 
-    // Invia la richiesta di spostamento al servizio remoto e gestisce l'esito.
+    /**
+     * Invia la richiesta di spostamento al servizio remoto e gestisce l'esito.
+     *
+     * @param nuova La proiezione di destinazione desiderata e confermata dall'utente.
+     */
     private void eseguiSpostamento(Proiezione nuova) {
         labelStato.setText("Spostamento in corso...");
         try {
@@ -204,7 +245,7 @@ public class ModificaPrenotazioneController extends DashboardBaseController {
                     .modificaPrenotazione(prenotazione.getCodice(), nuova.getDataOra());
             if (ok) {
                 // Spostata: torno a "Le mie prenotazioni", che ricarica i dati aggiornati.
-                layout.mostraMiePrenotazioniPubblica();
+                layout.mostraMiePrenotazioni();
             } else {
                 // Il server ha rifiutato (es. posti non piu' disponibili nel frattempo,
                 // o vincoli temporali). Ricarico le candidate per riflettere lo stato.
