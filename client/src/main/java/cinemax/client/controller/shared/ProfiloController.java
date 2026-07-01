@@ -27,10 +27,10 @@ import javafx.scene.layout.VBox;
  Sicurezza: per salvare qualsiasi modifica l'utente deve re-inserire la password
  attuale, che viene confrontata (cifrata) con quella memorizzata.
 
- NOTA: le interfacce remote attuali non hanno un metodo per aggiornare un utente. Per
- ora il salvataggio aggiorna l'oggetto Utente in memoria (sufficiente con i servizi
- finti). Quando il team aggiungerà un metodo come ServizioAutenticazione.modificaUtente,
- basterà chiamarlo nel punto segnato più sotto.
+ Il salvataggio invia l'utente aggiornato al server tramite
+ ServizioAutenticazione.modificaUtente. Le modifiche vengono applicate all'oggetto in
+ memoria e, se il server rifiuta o non e' raggiungibile, vengono annullate (rollback) per
+ mantenere l'oggetto allineato allo stato remoto.
  */
 public class
 ProfiloController extends DashboardBaseController {
@@ -183,7 +183,14 @@ ProfiloController extends DashboardBaseController {
             return;
         }
 
-        // 3) Applico le modifiche all'oggetto Utente.
+        // 3) Salvo i valori attuali per poter annullare le modifiche se il server rifiuta.
+        String vecchioNome = utenteLoggato.getNome();
+        String vecchioCognome = utenteLoggato.getCognome();
+        java.time.LocalDate vecchiaData = utenteLoggato.getDataNascita();
+        String vecchioDomicilio = utenteLoggato.getLuogoDomicilio();
+        String vecchiaPassword = utenteLoggato.getPasswordCifrata();
+
+        // Applico le modifiche all'oggetto Utente.
         utenteLoggato.setNome(campoNome.getTesto().trim());
         utenteLoggato.setCognome(campoCognome.getTesto().trim());
         utenteLoggato.setDataNascita(((DatePicker) campoDataNascita.getControllo()).getValue());
@@ -192,14 +199,38 @@ ProfiloController extends DashboardBaseController {
             utenteLoggato.setPasswordCifrata(Cifrario.cifraPassword(campoNuovaPassword.getTesto()));
         }
 
-        // TODO (quando ci sarà la presa remota): inviare l'utente aggiornato al server,
-        // es. gestoreScene.getFornitoreServizi().getServizioAutenticazione()
-        //              .modificaUtente(utenteLoggato);
-        // Per ora, con i servizi finti, la modifica in memoria è già effettiva.
+        // 4) Invio l'utente aggiornato al server. Se il server rifiuta (false) o non e'
+        // raggiungibile (RemoteException), ripristino i valori precedenti per non lasciare
+        // l'oggetto in memoria disallineato rispetto al server.
+        try {
+            boolean ok = gestoreScene.getFornitoreServizi()
+                    .getServizioAutenticazione()
+                    .modificaUtente(utenteLoggato);
+            if (!ok) {
+                ripristina(vecchioNome, vecchioCognome, vecchiaData, vecchioDomicilio, vecchiaPassword);
+                mostraErrore("Il server ha rifiutato le modifiche. Riprova.");
+                return;
+            }
+        } catch (java.rmi.RemoteException ex) {
+            ripristina(vecchioNome, vecchioCognome, vecchiaData, vecchioDomicilio, vecchiaPassword);
+            mostraErrore("Server non raggiungibile. Modifiche non salvate.");
+            return;
+        }
 
         mostraSuccesso("Modifiche salvate.");
         ((PasswordField) campoNuovaPassword.getControllo()).clear();
         ((PasswordField) campoPasswordAttuale.getControllo()).clear();
+    }
+
+    // Ripristina i dati dell'utente in memoria dopo un salvataggio fallito, cosi' l'oggetto
+    // resta allineato a quello sul server.
+    private void ripristina(String nome, String cognome, java.time.LocalDate data,
+                            String domicilio, String password) {
+        utenteLoggato.setNome(nome);
+        utenteLoggato.setCognome(cognome);
+        utenteLoggato.setDataNascita(data);
+        utenteLoggato.setLuogoDomicilio(domicilio);
+        utenteLoggato.setPasswordCifrata(password);
     }
 
     private void pulisciErroriCampi() {

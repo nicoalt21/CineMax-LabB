@@ -180,8 +180,12 @@ public class BaseLayoutController {
         // Pannello collassabile: contiene solo il menu (nessun divisore/contorno).
         pannelloMenu.getChildren().add(menuLaterale);
 
+        // Divisore verticale che separa il pannello laterale dall'area centrale
+        Separator divisoreLaterale = new Separator(Orientation.VERTICAL);
+        divisoreLaterale.getStyleClass().add("divisore-menu");
+
         contenitoreSinistro.setAlignment(Pos.TOP_LEFT);
-        contenitoreSinistro.getChildren().add(pannelloMenu);
+        contenitoreSinistro.getChildren().addAll(pannelloMenu, divisoreLaterale);
 
         contenitorePrincipale.setTop(header);
         contenitorePrincipale.setLeft(contenitoreSinistro);
