@@ -104,6 +104,13 @@ public class FilmDAO {
         return risultati;
     }
 
+    /**
+     * Trasforma la riga corrente del ResultSet in un oggetto Film.
+     *
+     * @param rs ResultSet posizionato sulla riga corrente
+     * @return oggetto Film popolato con i dati della riga
+     * @throws SQLException in caso di errore SQL
+     */
     private Film creaFilm(ResultSet rs) throws SQLException {
         return new Film(
                 rs.getInt   ("id_film"),

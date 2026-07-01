@@ -27,8 +27,18 @@ public class PrenotazioneDAO {
 
     private static final int CAPIENZA_MASSIMA = 200;
 
-    // Crea una prenotazione in modo atomico (transazione con FOR UPDATE per evitare
-    // overbooking concorrente). Ritorna la prenotazione creata, o null se non valida.
+    /**
+     * Crea una prenotazione in modo atomico usando una transazione con SELECT FOR UPDATE
+     * per evitare overbooking in caso di accessi concorrenti.
+     * Controlla che la proiezione sia futura, che i posti siano disponibili
+     * e che il cliente abbia l'eta' minima richiesta dal film.
+     *
+     * @param dataOraProiezione data e ora della proiezione da prenotare
+     * @param usernameCliente   username del cliente che effettua la prenotazione
+     * @param numeroBiglietti   numero di posti da prenotare
+     * @return prenotazione creata oppure null se non e' possibile prenotare
+     * @throws SQLException in caso di errore SQL
+     */
     public Prenotazione creaPrenotazione(LocalDateTime dataOraProiezione,
                                          String usernameCliente,
                                          int numeroBiglietti) throws SQLException {
@@ -44,6 +54,17 @@ public class PrenotazioneDAO {
         return ottieniPrenotazione(codice);
     }
 
+    /**
+     * Logica interna di creazione prenotazione eseguita all'interno di una transazione.
+     * Blocca la riga della proiezione con FOR UPDATE per serializzare gli accessi
+     * concorrenti e garantire che i posti non vengano sovraprenotati.
+     *
+     * @param utente            utente che effettua la prenotazione
+     * @param dataOraProiezione data e ora della proiezione
+     * @param numeroBiglietti   numero di posti da prenotare
+     * @return codice univoco della prenotazione creata, null se non e' possibile
+     * @throws SQLException in caso di errore SQL
+     */
     private String creaPrenotazioneInterna(Utente utente, LocalDateTime dataOraProiezione,
                                            int numeroBiglietti) throws SQLException {
         try (Connection conn = DBconnection.getConnection()) {
@@ -116,6 +137,14 @@ public class PrenotazioneDAO {
         }
     }
 
+    /**
+     * Carica una singola prenotazione per codice univoco, con tutti i dati
+     * del cliente, della proiezione e del film associati tramite JOIN.
+     *
+     * @param codice codice univoco della prenotazione
+     * @return prenotazione trovata oppure null se non esiste
+     * @throws SQLException in caso di errore SQL
+     */
     public Prenotazione ottieniPrenotazione(String codice) throws SQLException {
         String sql = "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
                 "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +
@@ -139,6 +168,13 @@ public class PrenotazioneDAO {
         }
     }
 
+    /**
+     * Restituisce tutte le prenotazioni di un cliente, ordinate per data proiezione.
+     *
+     * @param usernameCliente username del cliente
+     * @return lista prenotazioni del cliente, mai null
+     * @throws SQLException in caso di errore SQL
+     */
     public List<Prenotazione> trovaPerCliente(String usernameCliente) throws SQLException {
         String sql = "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
                 "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +
@@ -165,8 +201,16 @@ public class PrenotazioneDAO {
         return risultati;
     }
 
-    // Sposta una prenotazione su una nuova proiezione. Entrambe le date (vecchia e nuova)
-    // devono essere future; ritorna false se un vincolo è violato.
+    /**
+     * Sposta una prenotazione su una diversa proiezione (cambio data).
+     * La modifica e' consentita solo se sia la vecchia che la nuova proiezione sono future
+     * e se ci sono abbastanza posti liberi nella nuova proiezione.
+     *
+     * @param codice       codice univoco della prenotazione da modificare
+     * @param nuovaDataOra data e ora della nuova proiezione
+     * @return true se modificata con successo, false se un vincolo e' violato
+     * @throws SQLException in caso di errore SQL
+     */
     public boolean modificaData(String codice, LocalDateTime nuovaDataOra) throws SQLException {
         Prenotazione daModificare = ottieniPrenotazione(codice);
         if (daModificare == null) return false;
@@ -190,7 +234,14 @@ public class PrenotazioneDAO {
         }
     }
 
-    // Cancella una prenotazione solo se la proiezione è ancora futura.
+    /**
+     * Cancella una prenotazione esistente.
+     * La cancellazione e' consentita solo se la proiezione e' ancora futura.
+     *
+     * @param codice codice univoco della prenotazione da cancellare
+     * @return true se cancellata con successo, false se la proiezione e' gia' passata
+     * @throws SQLException in caso di errore SQL
+     */
     public boolean cancella(String codice) throws SQLException {
         Prenotazione p = ottieniPrenotazione(codice);
         if (p == null) return false;
@@ -206,7 +257,14 @@ public class PrenotazioneDAO {
         }
     }
 
-    // Cerca prenotazioni per criteri combinabili (usata dal bigliettaio).
+    /**
+     * Cerca prenotazioni con filtri combinabili. Usata principalmente dal bigliettaio.
+     * I campi null di CriteriRicercaPrenotazione vengono ignorati.
+     *
+     * @param criteri criteri di ricerca (codice, nome cliente, titolo film, date)
+     * @return lista prenotazioni che soddisfano i criteri, mai null
+     * @throws SQLException in caso di errore SQL
+     */
     public List<Prenotazione> cerca(CriteriRicercaPrenotazione criteri) throws SQLException {
         StringBuilder sql = new StringBuilder(
                 "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
@@ -265,6 +323,13 @@ public class PrenotazioneDAO {
         return risultati;
     }
 
+    /**
+     * Restituisce tutte le prenotazioni per proiezioni nella data odierna.
+     * Usato dal bigliettaio per visualizzare le prenotazioni del giorno.
+     *
+     * @return lista prenotazioni odierne ordinate per orario, mai null
+     * @throws SQLException in caso di errore SQL
+     */
     public List<Prenotazione> trovaDiOggi() throws SQLException {
         String sql = "SELECT pr.codice_univoco, pr.numero_posti, pr.data_creazione, " +
                 "u.username, u.nome, u.cognome, u.domicilio, u.data_nascita, u.ruolo, " +
@@ -289,6 +354,14 @@ public class PrenotazioneDAO {
         return risultati;
     }
 
+    /**
+     * Calcola i posti liberi per una proiezione.
+     * Usato internamente da modificaData per verificare la disponibilita'.
+     *
+     * @param dataOra data e ora della proiezione
+     * @return numero di posti ancora disponibili
+     * @throws SQLException in caso di errore SQL
+     */
     private int calcolaPostiLiberi(LocalDateTime dataOra) throws SQLException {
         String sql = "SELECT COALESCE(SUM(numero_posti), 0) FROM prenotazioni WHERE data_ora = ?";
 
@@ -302,6 +375,15 @@ public class PrenotazioneDAO {
         }
     }
 
+    /**
+     * Trasforma la riga corrente del ResultSet in un oggetto Prenotazione
+     * con il cliente, la proiezione e il film associati.
+     * La password del cliente viene impostata a null per sicurezza.
+     *
+     * @param rs ResultSet posizionato sulla riga corrente
+     * @return oggetto Prenotazione popolato con i dati della riga
+     * @throws SQLException in caso di errore SQL
+     */
     private Prenotazione creaPrenotazione(ResultSet rs) throws SQLException {
         Film film = new Film(
                 rs.getInt   ("id_film"),

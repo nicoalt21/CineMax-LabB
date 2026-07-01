@@ -12,9 +12,14 @@ import java.sql.Statement;
 import java.util.Scanner;
 
 /**
- * Tool da riga di comando per creare e popolare il database CineMax.
- * Va eseguito una sola volta, prima di avviare il server, per inizializzare
- * lo schema e i dati di base (utenti predefiniti, film, proiezioni di esempio).
+ * Classe per la creazione e il popolamento del database CineMax.
+ * Chiede le credenziali PostgreSQL all'utente, crea il database cinemaxdb
+ * ed esegue in ordine i file SQL per creare le tabelle e popolarle con i dati iniziali.
+ *
+ * @author Alt Niccolò Jacopo, 762605, VA
+ * @author Gerti, Alessia, 762405, VA
+ * @author Soldo Mateo, 760762, VA
+ * @author Vignati Davide, 761134, VA
  */
 public class DBcreator {
 
@@ -63,6 +68,13 @@ public class DBcreator {
         System.out.println(colora(GIALLO, testo));
     }
 
+    /**
+     * Metodo principale. Chiede le credenziali all'utente, si connette a PostgreSQL,
+     * crea il database cinemaxdb se non esiste (o lo ricrea se richiesto),
+     * poi esegue i file SQL in ordine per creare le tabelle e inserire i dati.
+     *
+     * @param args argomenti della riga di comando (non utilizzati)
+     */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
@@ -172,6 +184,7 @@ public class DBcreator {
 
         scanner.close();
     }
+
 
     /**
      * Esegue tutte le istruzioni SQL contenute in un file delle risorse.

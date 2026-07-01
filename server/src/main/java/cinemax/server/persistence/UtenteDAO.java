@@ -17,8 +17,14 @@ import java.time.LocalDate;
  */
 public class UtenteDAO {
 
-    // La password nell'oggetto utente deve essere già hashata lato client.
-    // Ritorna false se lo username è già in uso.
+    /**
+     * Registra un nuovo cliente nel database.
+     * La password nell'oggetto utente deve essere già hashata lato client.
+     *
+     * @param utente utente da registrare con password già cifrata
+     * @return true se registrato con successo, false se lo username è già in uso
+     * @throws SQLException in caso di errore SQL
+     */
     public boolean registraCliente(Utente utente) throws SQLException {
         if (esiste(utente.getUsername())) return false;
 
@@ -42,6 +48,14 @@ public class UtenteDAO {
         }
     }
 
+    /**
+     * Autentica un utente confrontando username e hash della password.
+     *
+     * @param username     username dell'utente
+     * @param passwordHash password già cifrata con SHA-256 lato client
+     * @return utente autenticato senza passwordCifrata, null se le credenziali non corrispondono
+     * @throws SQLException in caso di errore SQL
+     */
     public Utente autenticaUtente(String username, String passwordHash) throws SQLException {
         String sql = "SELECT * FROM utenti WHERE username = ? AND password_hash = ?";
 
@@ -56,7 +70,14 @@ public class UtenteDAO {
         }
     }
 
-    // Recupera un utente per username senza verificarne la password.
+    /**
+     * Recupera un utente per username senza verificarne la password.
+     * Usato internamente da PrenotazioneDAO per recuperare i dati del cliente.
+     *
+     * @param username username da cercare
+     * @return utente trovato, null se non esiste
+     * @throws SQLException in caso di errore SQL
+     */
     public Utente trovaPerId(String username) throws SQLException {
         String sql = "SELECT * FROM utenti WHERE username = ?";
 
@@ -70,6 +91,14 @@ public class UtenteDAO {
         }
     }
 
+    /**
+     * Verifica se uno username è già presente nel database.
+     * Usato da registraCliente per evitare duplicati.
+     *
+     * @param username username da verificare
+     * @return true se lo username esiste già, false altrimenti
+     * @throws SQLException in caso di errore SQL
+     */
     public boolean esiste(String username) throws SQLException {
         String sql = "SELECT 1 FROM utenti WHERE username = ?";
 
@@ -82,7 +111,14 @@ public class UtenteDAO {
         }
     }
 
-    // La passwordCifrata è impostata a null: non deve mai uscire dal server.
+    /**
+     * Trasforma la riga corrente del ResultSet in un oggetto Utente.
+     * La passwordCifrata viene impostata a null: non deve mai uscire dal server.
+     *
+     * @param rs ResultSet posizionato sulla riga corrente
+     * @return oggetto Utente popolato con i dati della riga
+     * @throws SQLException in caso di errore SQL
+     */
     private Utente creaUtente(ResultSet rs) throws SQLException {
         Date sqlDate = rs.getDate("data_nascita");
         LocalDate dataNascita = (sqlDate != null) ? sqlDate.toLocalDate() : null;
@@ -98,6 +134,13 @@ public class UtenteDAO {
         );
     }
 
+    /**
+     * Aggiorna i dati di un utente esistente nel database.
+     *
+     * @param utente utente con i dati aggiornati (la password deve essere già cifrata)
+     * @return true se l'aggiornamento è andato a buon fine, false se l'utente non esiste
+     * @throws SQLException in caso di errore SQL
+     */
     public boolean aggiorna(Utente utente) throws SQLException {
         String sql = "UPDATE utenti SET nome = ?, cognome = ?, password_hash = ?, " +
                 "data_nascita = ?, domicilio = ? WHERE username = ?";

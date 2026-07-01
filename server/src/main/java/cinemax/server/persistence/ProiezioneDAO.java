@@ -23,6 +23,15 @@ public class ProiezioneDAO {
 
     private static final int CAPIENZA_SALA = 200;
 
+    /**
+     * Cerca proiezioni in base ai criteri passati.
+     * I campi null di CriteriRicercaProiezione vengono ignorati.
+     * Supporta filtri per titolo, genere, intervallo di date e fascia di prezzo.
+     *
+     * @param criteri criteri di ricerca (titolo, genere, date, costo)
+     * @return lista di proiezioni che soddisfano i criteri, mai null
+     * @throws SQLException in caso di errore SQL
+     */
     public List<Proiezione> cercaProiezione(CriteriRicercaProiezione criteri) throws SQLException {
 
         StringBuilder sql = new StringBuilder("SELECT p.data_ora, p.prezzo_biglietto, " +
@@ -79,16 +88,22 @@ public class ProiezioneDAO {
         return risultati;
     }
 
-   private boolean siSovrappongono(LocalDateTime dataOra, int durata, LocalDateTime escludiSlot)
+    /**
+     * Controlla se un nuovo slot temporale si sovrappone con una proiezione esistente.
+     * Due proiezioni si sovrappongono se l'intervallo [inizio, inizio+durata) della
+     * nuova proiezione interseca quello di una gia' programmata.
+     *
+     * @param dataOra     data e ora di inizio della nuova proiezione
+     * @param durata      durata in minuti della nuova proiezione
+     * @param escludiSlot slot da escludere dal controllo (null se inserimento nuovo,
+     *                    valorizzato con la data attuale in caso di modifica)
+     * @return true se esiste una sovrapposizione, false altrimenti
+     * @throws SQLException in caso di errore SQL
+     */
+    private boolean siSovrappongono(LocalDateTime dataOra, int durata, LocalDateTime escludiSlot)
            throws SQLException {
 
-       // Due proiezioni si sovrappongono se l'intervallo [inizio, inizio+durata) della
-       // candidata interseca quello di una proiezione esistente. Usiamo make_interval e
-       // cast espliciti dei timestamp per evitare ambiguità di tipo in PostgreSQL
-       // (la vecchia versione con "|| ' minutes'::interval" causava l'errore
-       // "timestamp < interval").
-       String sql =
-               "SELECT 1 FROM proiezioni p JOIN film f ON p.id_film = f.id_film " +
+       String sql = "SELECT 1 FROM proiezioni p JOIN film f ON p.id_film = f.id_film " +
                        "WHERE (CAST(? AS timestamp) IS NULL OR p.data_ora <> CAST(? AS timestamp)) " +
                        "AND CAST(? AS timestamp) < p.data_ora + make_interval(mins => f.durata_minuti) " +
                        "AND p.data_ora < CAST(? AS timestamp) + make_interval(mins => ?)";
@@ -113,6 +128,15 @@ public class ProiezioneDAO {
        }
    }
 
+    /**
+     * Inserisce una nuova proiezione nel palinsesto.
+     * Prima verifica che non si sovrapponga temporalmente con altre proiezioni esistenti.
+     * Se il film non e' ancora in catalogo, viene inserito automaticamente.
+     *
+     * @param proiezione proiezione da inserire
+     * @return true se inserita con successo, false se c'e' sovrapposizione
+     * @throws SQLException in caso di errore SQL
+     */
     public boolean aggiungiProiezione(Proiezione proiezione) throws SQLException{
         if (siSovrappongono(proiezione.getDataOra(), proiezione.getFilm().getDurataMinuti(), null)) {
             return false;
@@ -133,6 +157,18 @@ public class ProiezioneDAO {
         }
     }
 
+    /**
+     * Modifica data, film e prezzo di una proiezione esistente.
+     * La modifica e' consentita solo se non ci sono prenotazioni per quella proiezione
+     * e se il nuovo slot non si sovrappone con altre proiezioni.
+     *
+     * @param dataOraAttuale data e ora attuale della proiezione da modificare
+     * @param idFilm         id del nuovo film
+     * @param nuovaDataOra   nuova data e ora della proiezione
+     * @param costo          nuovo prezzo del biglietto
+     * @return true se modificata con successo, false se ci sono prenotazioni o sovrapposizione
+     * @throws SQLException in caso di errore SQL
+     */
     public boolean modificaProiezione(LocalDateTime dataOraAttuale, int idFilm,
                                       LocalDateTime nuovaDataOra, double costo) throws SQLException {
 
@@ -158,6 +194,14 @@ public class ProiezioneDAO {
         }
     }
 
+    /**
+     * Elimina una proiezione dal palinsesto.
+     * La cancellazione e' consentita solo se non ci sono prenotazioni associate.
+     *
+     * @param dataOra data e ora della proiezione da eliminare
+     * @return true se eliminata con successo, false se ci sono prenotazioni
+     * @throws SQLException in caso di errore SQL
+     */
     public boolean eliminaProiezione(LocalDateTime dataOra) throws SQLException {
 
         if (hasPrenotazioni(dataOra)) return false;
@@ -173,6 +217,14 @@ public class ProiezioneDAO {
         }
     }
 
+    /**
+     * Carica una singola proiezione per data e ora, con il conteggio aggiornato
+     * dei posti liberi calcolato dalle prenotazioni esistenti.
+     *
+     * @param dataOra data e ora della proiezione
+     * @return proiezione trovata oppure null se non esiste
+     * @throws SQLException in caso di errore SQL
+     */
     public Proiezione ottieniProiezione(LocalDateTime dataOra) throws SQLException {
         String sql = "SELECT p.data_ora, p.prezzo_biglietto, " +
                         "f.id_film, f.titolo, f.genere, f.regista, f.anno, f.durata_minuti, f.eta_minima, " +
@@ -193,6 +245,14 @@ public class ProiezioneDAO {
         }
     }
 
+    /**
+     * Verifica se una proiezione ha almeno una prenotazione associata.
+     * Usato da modificaProiezione ed eliminaProiezione prima di procedere.
+     *
+     * @param dataOra data e ora della proiezione
+     * @return true se esistono prenotazioni, false altrimenti
+     * @throws SQLException in caso di errore SQL
+     */
     public boolean hasPrenotazioni(LocalDateTime dataOra) throws SQLException {
 
         String sql = "SELECT 1 FROM prenotazioni WHERE data_ora = ? LIMIT 1";
@@ -207,6 +267,14 @@ public class ProiezioneDAO {
         }
     }
 
+    /**
+     * Inserisce un film nel database se non esiste gia' (per titolo+regista+anno),
+     * altrimenti restituisce l'id del film gia' presente nel catalogo.
+     *
+     * @param film film da inserire o cercare
+     * @return id_film assegnato dal database
+     * @throws SQLException in caso di errore SQL
+     */
     private int inserisciORecuperaFilm(Film film) throws SQLException {
 
         String selectSql = "SELECT id_film FROM film WHERE titolo = ? AND regista = ? AND anno = ?";
@@ -246,30 +314,17 @@ public class ProiezioneDAO {
         }
     }
 
-    private Proiezione creaProiezione(ResultSet rs) throws SQLException {
-
-        Film film = new Film(
-                rs.getInt   ("id_film"),
-                rs.getString("titolo"),
-                rs.getString("genere"),
-                rs.getString("regista"),
-                rs.getInt   ("anno"),
-                rs.getInt   ("durata_minuti"),
-                rs.getInt   ("eta_minima")
-        );
-
-        return new Proiezione(
-                0,
-                film,
-                rs.getTimestamp("data_ora").toLocalDateTime(),
-                rs.getDouble   ("prezzo_biglietto"),
-                rs.getInt      ("posti_liberi")
-        );
-    }
-
-    // Orari di inizio liberi (multipli di 5 min) in cui un film della durata indicata
-    // può iniziare in 'giorno' senza sovrapporsi ad altre proiezioni, terminando entro le
-    // 24:00. dataOraProiezioneDaEscludere: la proiezione in modifica da ignorare (null se nuova).
+    /**
+     * Calcola gli slot orari liberi (multipli di 5 minuti) in cui un film
+     * della durata indicata puo' iniziare nel giorno specificato senza
+     * sovrapporsi ad altre proiezioni gia' programmate.
+     *
+     * @param giorno                       giorno per cui calcolare le finestre libere
+     * @param durataMinuti                 durata del film in minuti
+     * @param dataOraProiezioneDaEscludere proiezione in modifica da ignorare (null se nuova)
+     * @return lista di orari di inizio disponibili
+     * @throws SQLException in caso di errore SQL
+     */
     public List<java.time.LocalTime> calcolaFinestreLibere(java.time.LocalDate giorno,
                                                            int durataMinuti,
                                                            LocalDateTime dataOraProiezioneDaEscludere)
@@ -324,6 +379,35 @@ public class ProiezioneDAO {
             }
         }
         return risultati;
+    }
+
+    /**
+     * Trasforma la riga corrente del ResultSet in un oggetto Proiezione
+     * con il film associato e i posti liberi aggiornati.
+     *
+     * @param rs ResultSet posizionato sulla riga corrente
+     * @return oggetto Proiezione popolato con i dati della riga
+     * @throws SQLException in caso di errore SQL
+     */
+    private Proiezione creaProiezione(ResultSet rs) throws SQLException {
+
+        Film film = new Film(
+                rs.getInt   ("id_film"),
+                rs.getString("titolo"),
+                rs.getString("genere"),
+                rs.getString("regista"),
+                rs.getInt   ("anno"),
+                rs.getInt   ("durata_minuti"),
+                rs.getInt   ("eta_minima")
+        );
+
+        return new Proiezione(
+                0,
+                film,
+                rs.getTimestamp("data_ora").toLocalDateTime(),
+                rs.getDouble   ("prezzo_biglietto"),
+                rs.getInt      ("posti_liberi")
+        );
     }
 
 }

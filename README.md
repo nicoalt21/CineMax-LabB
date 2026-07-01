@@ -25,7 +25,7 @@ Manuale Tecnico, Manuale Utente e JavaDoc disponibili in `/doc`.
 ## 📦 Dipendenze
 
 Il progetto utilizza **Maven** per la compilazione. Le dipendenze principali sono:
-- **JavaFX 21** - interfaccia grafica client
+- **JavaFX 25.0.1** - interfaccia grafica client
 - **PostgreSQL JDBC 42.7.5** - accesso al database
 - **Java RMI** - comunicazione distribuita client/server
 
@@ -39,9 +39,17 @@ Il progetto utilizza **Maven** per la compilazione. Le dipendenze principali son
 
 ---
 
-## 🗄️ Setup
+## 🗄️ Setup Dabatase
 
-da fare
+1. Scarica, se non la possiedi, un’istanza **PostgreSQL** dal sito ufficiale https://www.postgresql.org/.
+2. Configura le credenziali di accesso.
+3. Esegui il jar del DBcreator che crea e popola il database automaticamente:
+
+```bash
+java -jar bin/DBcreator.jar
+```
+
+4. Il programma chiederà host, porta, username e password — premi invio per usare i valori di default.
 
 ---
 
@@ -72,6 +80,12 @@ java -jar client/target/App.jar
 ```
 
 Il client chiederà l'host e la porta del server RMI. Assicurarsi che il server sia già avviato prima di lanciare il client.
+
+---
+
+## 📁 Struttura del Progetto
+
+è ingombrante non so se metterla
 
 ---
 
